@@ -2,14 +2,23 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
-## Install
+## Install as a plugin
 
 Prerequisites:
 
 - GitHub Copilot with extension canvases enabled
 - GitHub CLI (`gh`) installed and authenticated to the account whose organizations you want to monitor
 
-Install this folder as a **User** extension:
+1. In GitHub Copilot, open **Customize**.
+2. Open the marketplace settings beside the marketplace selector and add `bradygaster/merge-harbor`.
+3. Find and install the **merge-harbor** plugin.
+4. Reload extensions, then start a new session and open **Merge Harbor**.
+
+The marketplace catalog is `.github/plugin/marketplace.json`. It installs the repository-root Agent Plugin described by `plugin.json`. The app discovers the canvas at `com.github.copilot/extensions/merge-harbor/`; that entrypoint forwards to the existing `extension/` implementation rather than maintaining a second runtime.
+
+## Install the extension directly
+
+Direct user-scope installation remains available:
 
 <https://github.com/bradygaster/merge-harbor/tree/main/extension>
 
@@ -53,7 +62,16 @@ Reinstalling or updating the extension does not intentionally overwrite that art
 
 ## Update
 
-Reinstall the extension from the same GitHub folder URL to pick up a newer release. User preferences remain in the extension artifact directory.
+Update the plugin from **Customize** > **Installed**, or reinstall the extension from the same GitHub folder URL. User preferences remain in the extension artifact directory.
+
+## Compatibility
+
+- Plugin release version: `0.2.0`
+- Extension manifest format version: `1`
+- Validated app build: `1.0.106-8.unstable.r43162459260.gbfc9f50`
+- Plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
+
+The app may require an extension reload, app restart, or new session after plugin installation or enable/disable changes. Plugin installation also requires GitHub read access to this repository. Merge Harbor itself continues to use the locally authenticated `gh` CLI and a loopback-only web server.
 
 ## Development
 
@@ -63,7 +81,7 @@ Run the dependency-free validation:
 node scripts/validate.mjs
 ```
 
-For local development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas.
+For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.
 
 ## License
 

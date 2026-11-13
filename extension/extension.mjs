@@ -9,6 +9,7 @@ import { createCanvas, joinSession } from "@github/copilot-sdk/extension";
 const servers = new Map();
 const execFileAsync = promisify(execFile);
 const prototypeHtml = readFileSync(new URL("./merge-harbor.html", import.meta.url), "utf8");
+const captainImage = readFileSync(new URL("./assets/merge-harbor-captain.png", import.meta.url));
 const legacyPreferencesUrl = new URL("./preferences.json", import.meta.url);
 const copilotHome = process.env.COPILOT_HOME ?? join(homedir(), ".copilot");
 const preferencesDirectory = join(copilotHome, "extensions", "merge-harbor", "artifacts");
@@ -625,6 +626,16 @@ async function startServer(instanceId, defaultView) {
         if (requestUrl.pathname === "/favicon.ico") {
             res.writeHead(204);
             res.end();
+            return;
+        }
+
+        if (requestUrl.pathname === "/assets/merge-harbor-captain.png") {
+            res.writeHead(200, {
+                "Content-Type": "image/png",
+                "Content-Length": captainImage.length,
+                "Cache-Control": "public, max-age=3600",
+            });
+            res.end(captainImage);
             return;
         }
 
