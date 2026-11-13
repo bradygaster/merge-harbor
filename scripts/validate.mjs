@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const scriptRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = resolve(process.env.MERGE_HARBOR_ROOT ?? scriptRoot);
 const extensionPath = join(root, "extension", "extension.mjs");
 const htmlPath = join(root, "extension", "merge-harbor.html");
 const captainImagePath = join(root, "extension", "assets", "merge-harbor-captain.png");
@@ -12,6 +13,26 @@ const manifestPath = join(root, "extension", "copilot-extension.json");
 const pluginExtensionPath = join(root, "com.github.copilot", "extensions", "merge-harbor", "extension.mjs");
 const pluginPath = join(root, "plugin.json");
 const marketplacePath = join(root, ".github", "plugin", "marketplace.json");
+const readmePath = join(root, "README.md");
+const changelogPath = join(root, "CHANGELOG.md");
+
+function requireFile(path, label) {
+    if (!existsSync(path)) {
+        throw new Error(`${label} is missing: ${relative(root, path)}`);
+    }
+}
+
+[
+    [extensionPath, "Canvas runtime"],
+    [htmlPath, "Canvas HTML"],
+    [captainImagePath, "Merge Harbor captain asset"],
+    [manifestPath, "Direct extension manifest"],
+    [pluginExtensionPath, "Plugin canvas entrypoint"],
+    [pluginPath, "Plugin manifest"],
+    [marketplacePath, "Marketplace catalog"],
+    [readmePath, "README"],
+    [changelogPath, "Changelog"],
+].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 if (manifest.name !== "merge-harbor" || manifest.version !== 1) {
@@ -39,6 +60,22 @@ const marketplacePlugin = marketplace.plugins?.find((entry) => entry.name === "m
 if (marketplace.name !== plugin.name || marketplace.plugins?.length !== 1 || !marketplacePlugin) {
     throw new Error("marketplace.json must publish the merge-harbor plugin.");
 }
+if (typeof marketplacePlugin.source !== "string" || !marketplacePlugin.source.trim()) {
+    throw new Error("marketplace.json must declare a non-empty local plugin source.");
+}
+if (isAbsolute(marketplacePlugin.source)) {
+    throw new Error("marketplace.json plugin source must be repository-relative.");
+}
+const marketplaceSourcePath = resolve(root, marketplacePlugin.source);
+const sourceRelativePath = relative(root, marketplaceSourcePath);
+if (sourceRelativePath === ".." || sourceRelativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) {
+    throw new Error("marketplace.json plugin source must stay within the repository.");
+}
+const sourcePluginPath = join(marketplaceSourcePath, "plugin.json");
+requireFile(sourcePluginPath, "Marketplace plugin source manifest");
+if (JSON.stringify(JSON.parse(readFileSync(sourcePluginPath, "utf8"))) !== JSON.stringify(plugin)) {
+    throw new Error("The marketplace source plugin manifest must match repository-root plugin.json.");
+}
 if (
     marketplacePlugin.source !== "." ||
     marketplacePlugin.version !== plugin.version ||
@@ -60,6 +97,15 @@ if (
 }
 if ("canvas" in marketplacePlugin || "canvases" in marketplacePlugin) {
     throw new Error("marketplace.json must not invent unsupported canvas metadata.");
+}
+
+const readme = readFileSync(readmePath, "utf8");
+const changelog = readFileSync(changelogPath, "utf8");
+if (!readme.includes(`Plugin release version: \`${plugin.version}\``)) {
+    throw new Error("README compatibility information must match the plugin release version.");
+}
+if (!changelog.includes(`## ${plugin.version} -`)) {
+    throw new Error("CHANGELOG must contain the plugin release version.");
 }
 
 const syntax = spawnSync(process.execPath, ["--check", extensionPath], {
@@ -90,6 +136,9 @@ const html = readFileSync(htmlPath, "utf8");
 if (!html.includes('src="/assets/merge-harbor-captain.png"')) {
     throw new Error("The dashboard header must include the Merge Harbor captain asset.");
 }
+const assetPaths = [...html.matchAll(/(?:src|href)="\/assets\/([^"]+)"/g)]
+    .map((match) => join(root, "extension", "assets", match[1]));
+assetPaths.forEach((path) => requireFile(path, "Packaged canvas asset"));
 const captainImage = readFileSync(captainImagePath);
 if (captainImage.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
     throw new Error("The Merge Harbor captain asset must be a PNG.");

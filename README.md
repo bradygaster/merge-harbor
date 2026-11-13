@@ -2,17 +2,21 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
-## Install as a plugin
+## Install from the marketplace
 
 Prerequisites:
 
-- GitHub Copilot with extension canvases enabled
+- GitHub Copilot desktop app with custom plugins and extension canvases enabled
+- GitHub read access to `bradygaster/merge-harbor`
 - GitHub CLI (`gh`) installed and authenticated to the account whose organizations you want to monitor
 
 1. In GitHub Copilot, open **Customize**.
-2. Open the marketplace settings beside the marketplace selector and add `bradygaster/merge-harbor`.
-3. Find and install the **merge-harbor** plugin.
-4. Reload extensions, then start a new session and open **Merge Harbor**.
+2. Open the marketplace settings beside the marketplace selector.
+3. Add the marketplace repository `bradygaster/merge-harbor`.
+4. Return to **Browse**, select that marketplace, and find **merge-harbor**.
+5. Install and enable the plugin.
+6. Reload extensions if prompted, start a new session, and ask Copilot to open **Merge Harbor**.
+7. Select an organization or open **My repos**. Merge Harbor reads only repositories and pull requests visible to the account authenticated in `gh`.
 
 The marketplace catalog is `.github/plugin/marketplace.json`. It installs the repository-root Agent Plugin described by `plugin.json`. The app discovers the canvas at `com.github.copilot/extensions/merge-harbor/`; that entrypoint forwards to the existing `extension/` implementation rather than maintaining a second runtime.
 
@@ -20,7 +24,7 @@ The marketplace catalog is `.github/plugin/marketplace.json`. It installs the re
 
 This is a custom marketplace, not a globally featured listing. It appears only for users who add `bradygaster/merge-harbor` as a marketplace and who have GitHub read access to the repository. Adding the marketplace makes the plugin available in **Customize** > **Browse**; installing it makes the plugin manageable in **Customize** > **Installed**.
 
-The plugin supplies the Merge Harbor canvas, but the public app documentation does not guarantee that every custom plugin canvas also receives a separate listing under **Customize** > **Canvas**. That view may be curated, so the supported discovery path is the plugin listing in the configured marketplace.
+The plugin supplies the Merge Harbor canvas, but a custom plugin canvas is not guaranteed to receive a separate listing under **Customize** > **Canvas**. That view may be curated. Use the plugin listing in **Customize** > **Browse** or **Installed**, then open the canvas from a session.
 
 The catalog intentionally uses no canvas-specific or category metadata. Those fields are not required to load the canvas from the documented Copilot-specific plugin directory.
 
@@ -34,7 +38,16 @@ In GitHub Copilot, choose **Install extension from GitHub**, paste the URL above
 
 After installation, ask Copilot to open **Merge Harbor**.
 
-## Why user scope?
+## Update, disable, and uninstall
+
+- **Update:** Open **Customize** > **Installed**, select **merge-harbor**, and use the update action when the app offers one. If no update action is exposed, uninstall and reinstall from the same marketplace after confirming the marketplace points at the intended release.
+- **Disable or re-enable:** Use the plugin controls under **Customize** > **Installed**, then reload extensions or start a new session if the canvas list does not refresh immediately.
+- **Uninstall:** Remove **merge-harbor** from **Customize** > **Installed**. Removing the plugin does not imply removal of its separately stored preference artifact.
+- **Remove the marketplace:** Remove `bradygaster/merge-harbor` from marketplace settings only after uninstalling if you no longer want the custom listing to appear.
+
+The app's available lifecycle controls can vary by build. If **Update**, **Disable**, or **Uninstall** is not shown, record the app version and treat that action as an app limitation rather than using direct file copying as proof that the marketplace flow works.
+
+## Preference persistence
 
 The extension follows you across repositories and sessions. Its source is installed under:
 
@@ -42,13 +55,13 @@ The extension follows you across repositories and sessions. Its source is instal
 $COPILOT_HOME/extensions/merge-harbor/
 ```
 
-Personal preferences are kept outside the repository under:
+Server-side preferences are kept outside the packaged repository under:
 
 ```text
 $COPILOT_HOME/extensions/merge-harbor/artifacts/preferences.json
 ```
 
-Reinstalling or updating the extension does not intentionally overwrite that artifact.
+That file stores the selected organization and **My repos** list. Auto-refresh settings are browser-local settings for the canvas page. The plugin package does not write either preference store during installation. Updating, disabling, or reinstalling is therefore expected to preserve preferences unless the app removes the extension artifact directory or browser storage. Uninstall behavior is app-owned; back up the preference file before uninstalling if preserving the list is important.
 
 ## Capabilities
 
@@ -68,18 +81,30 @@ Reinstalling or updating the extension does not intentionally overwrite that art
 - The extension does not require an external service or send preferences to a Merge Harbor backend.
 - Repository access is limited to what the authenticated GitHub account can access.
 
-## Update
-
-Update the plugin from **Customize** > **Installed**, or reinstall the extension from the same GitHub folder URL. User preferences remain in the extension artifact directory.
-
 ## Compatibility
 
 - Plugin release version: `0.2.0`
 - Extension manifest format version: `1`
-- Validated app build: `1.0.106-8.unstable.r43162459260.gbfc9f50`
+- App build used for runtime smoke: `1.4.0`
 - Plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
 
-The app may require an extension reload, app restart, or new session after plugin installation or enable/disable changes. Plugin installation also requires GitHub read access to this repository. Merge Harbor itself continues to use the locally authenticated `gh` CLI and a loopback-only web server.
+The app may require an extension reload, app restart, or new session after plugin installation or enable/disable changes. Merge Harbor itself continues to use the locally authenticated `gh` CLI and a loopback-only web server.
+
+## Verification status
+
+The dependency-free validator checks the real marketplace source, plugin identity and release consistency, the Copilot contribution path, JavaScript syntax, and every packaged `/assets/` reference. Its fixture tests prove that a nonexistent catalog source and a missing packaged canvas asset fail with a nonzero exit code.
+
+The `1.4.0` app build opened the already installed user-scope Merge Harbor canvas and started its loopback server. Read-only `gh` smoke checks also confirmed access to `octodemo/octocat_supply-potential-succotash` and its open pull requests without changing repository contents. These checks demonstrate runtime and GitHub-access viability, but they are **not** evidence of a first-time marketplace install: the active user installation could mask packaging defects.
+
+A disposable Windows Sandbox, VM, or throwaway Windows user with a separate app profile is still required to capture native UI evidence for add marketplace, install, update, disable/re-enable, uninstall, and preference persistence. Setting `COPILOT_HOME` alone is not full app-profile isolation. Do not alter the active user's AppData, Copilot home, credentials, or installed extension to manufacture that evidence.
+
+### Troubleshooting
+
+- **Marketplace is empty or unavailable:** Confirm repository read access and that the marketplace repository is exactly `bradygaster/merge-harbor`.
+- **Install succeeds but the canvas is missing:** Reload extensions, start a new session, and ask Copilot to open **Merge Harbor**. Do not rely on a separate **Customize** > **Canvas** listing.
+- **GitHub data fails to load:** Run `gh auth status`, confirm the intended account and SSO authorization, and verify that account can read the target organization and repositories.
+- **Preferences appear reset:** Check whether `$COPILOT_HOME/extensions/merge-harbor/artifacts/preferences.json` still exists and whether the app used the same user profile.
+- **Packaging validation fails:** Run both commands below. The error identifies the missing source, manifest, contribution, asset, or release mismatch.
 
 ## Development
 
@@ -87,6 +112,7 @@ Run the dependency-free validation:
 
 ```shell
 node scripts/validate.mjs
+node scripts/validate.test.mjs
 ```
 
 For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.
