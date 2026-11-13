@@ -16,6 +16,14 @@ Prerequisites:
 
 The marketplace catalog is `.github/plugin/marketplace.json`. It installs the repository-root Agent Plugin described by `plugin.json`. The app discovers the canvas at `com.github.copilot/extensions/merge-harbor/`; that entrypoint forwards to the existing `extension/` implementation rather than maintaining a second runtime.
 
+### Marketplace visibility
+
+This is a custom marketplace, not a globally featured listing. It appears only for users who add `bradygaster/merge-harbor` as a marketplace and who have GitHub read access to the repository. Adding the marketplace makes the plugin available in **Customize** > **Browse**; installing it makes the plugin manageable in **Customize** > **Installed**.
+
+The plugin supplies the Merge Harbor canvas, but the public app documentation does not guarantee that every custom plugin canvas also receives a separate listing under **Customize** > **Canvas**. That view may be curated, so the supported discovery path is the plugin listing in the configured marketplace.
+
+The catalog intentionally uses no canvas-specific or category metadata. Those fields are not required to load the canvas from the documented Copilot-specific plugin directory.
+
 ## Install the extension directly
 
 Direct user-scope installation remains available:
@@ -82,6 +90,12 @@ node scripts/validate.mjs
 ```
 
 For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.
+
+Marketplace and app behavior follow the official GitHub documentation:
+
+- [Creating and sharing a plugin marketplace on GitHub](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/create-and-share-plugin-marketplaces)
+- [Plugin and marketplace reference](https://docs.github.com/en/copilot/reference/plugin-and-marketplace-reference)
+- [Customizing the GitHub Copilot app](https://docs.github.com/en/copilot/how-tos/github-copilot-app/customize-github-copilot-app)
 
 ## License
 

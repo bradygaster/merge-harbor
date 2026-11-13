@@ -12,6 +12,19 @@
       "name": "merge-harbor",
       "description": "Ambient pull request operations dashboard for GitHub Copilot.",
       "version": "0.2.0",
+      "author": {
+        "name": "Brady Gaster",
+        "url": "https://github.com/bradygaster"
+      },
+      "homepage": "https://github.com/bradygaster/merge-harbor",
+      "repository": "https://github.com/bradygaster/merge-harbor",
+      "license": "MIT",
+      "keywords": [
+        "canvas",
+        "github",
+        "merge-operations",
+        "pull-requests"
+      ],
       "source": "."
     }
   ]

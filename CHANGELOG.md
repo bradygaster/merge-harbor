@@ -4,8 +4,8 @@
 
 - Added an Agent Plugins 1.0 manifest and GitHub-hosted marketplace catalog
 - Added a canonical Copilot app extension entrypoint that forwards to the existing canvas runtime
-- Added dependency-free validation for plugin metadata and contribution paths
-- Documented plugin installation, lifecycle expectations, and compatibility
+- Added dependency-free validation for catalog identity, plugin metadata, and contribution paths
+- Documented plugin installation, marketplace visibility limits, lifecycle expectations, and compatibility
 - Added the Merge Harbor captain artwork to the dashboard masthead
 
 ## 0.1.0 - 2026-11-13

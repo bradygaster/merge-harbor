@@ -36,14 +36,30 @@ if (pluginExtensionSource !== 'import "../../../extension/extension.mjs";') {
 
 const marketplace = JSON.parse(readFileSync(marketplacePath, "utf8"));
 const marketplacePlugin = marketplace.plugins?.find((entry) => entry.name === "merge-harbor");
-if (marketplace.name !== "merge-harbor" || !marketplacePlugin) {
+if (marketplace.name !== plugin.name || marketplace.plugins?.length !== 1 || !marketplacePlugin) {
     throw new Error("marketplace.json must publish the merge-harbor plugin.");
 }
-if (marketplacePlugin.source !== "." || marketplacePlugin.version !== plugin.version) {
+if (
+    marketplacePlugin.source !== "." ||
+    marketplacePlugin.version !== plugin.version ||
+    marketplacePlugin.description !== plugin.description
+) {
     throw new Error("marketplace.json must publish the repository-root plugin at the plugin release version.");
 }
 if (marketplace.metadata?.version !== plugin.version) {
     throw new Error("marketplace metadata and plugin release versions must match.");
+}
+if (
+    JSON.stringify(marketplacePlugin.author) !== JSON.stringify(plugin.author) ||
+    marketplacePlugin.homepage !== plugin.repository ||
+    marketplacePlugin.repository !== plugin.repository ||
+    marketplacePlugin.license !== plugin.license ||
+    JSON.stringify(marketplacePlugin.keywords) !== JSON.stringify(plugin.keywords)
+) {
+    throw new Error("marketplace listing metadata must match the repository-root plugin identity.");
+}
+if ("canvas" in marketplacePlugin || "canvases" in marketplacePlugin) {
+    throw new Error("marketplace.json must not invent unsupported canvas metadata.");
 }
 
 const syntax = spawnSync(process.execPath, ["--check", extensionPath], {
