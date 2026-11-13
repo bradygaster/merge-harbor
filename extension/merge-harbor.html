@@ -1,0 +1,2453 @@
+<!--
+THESIS: Merge flow is harbor traffic, but every signal must encode live GitHub truth and shorten the route to intervention.
+OWN-WORLD: A GitHub-native operations surface with harbor language used only where it improves comprehension.
+STORY: Read fleet urgency in three seconds, open the highest-leverage PR in one click, then inspect repository-level distribution.
+FIRST VIEWPORT: A truthful fleet signal, a full-queue distribution, and the top three actionable pull requests.
+FORM: Ambient command display with direct-action drill-down.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Merge Harbor — Ambient merge operations</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      overflow-x: hidden;
+    }
+    button, a { font: inherit; }
+    button:focus-visible, a:focus-visible {
+      outline: 3px solid var(--cp-accent);
+      outline-offset: 3px;
+    }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: var(--cp-bg-elevated);
+    }
+    .topbar {
+      min-height: 92px;
+      padding: 20px 28px;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto minmax(280px, 1fr);
+      gap: 24px;
+      align-items: center;
+      border-bottom: 1px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--cp-border-strong);
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2.4vw, 2.5rem);
+      line-height: 1;
+      letter-spacing: -0.035em;
+    }
+    .subline {
+      margin-top: 6px;
+      color: var(--cp-text-muted);
+      font-size: 0.82rem;
+    }
+    .view-switcher {
+      display: flex;
+      padding: 4px;
+      gap: 4px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      border-radius: 0.625rem;
+    }
+    .view-switcher button {
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 0.625rem;
+      background: transparent;
+      color: var(--cp-text-muted);
+      cursor: pointer;
+    }
+    .view-switcher button:hover { color: var(--cp-text); }
+    .view-switcher button[aria-selected="true"] {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      font-weight: 700;
+    }
+    .fleet-health {
+      justify-self: end;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: right;
+    }
+    .health-number {
+      font-size: clamp(2.2rem, 4vw, 4.5rem);
+      line-height: 0.85;
+      font-weight: 800;
+      letter-spacing: -0.06em;
+      color: var(--cp-success);
+    }
+    .health-copy { max-width: 190px; }
+    .health-copy strong { display: block; font-size: 0.95rem; }
+    .health-copy span { color: var(--cp-text-muted); font-size: 0.78rem; }
+
+    main { min-height: 0; }
+    .screen { display: none; min-height: calc(100vh - 146px); }
+    .screen.active { display: block; }
+    .screen-head {
+      min-height: 52px;
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-size: 0.82rem;
+    }
+    .screen-head strong { color: var(--cp-text); font-size: 0.96rem; }
+    .repo-search {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .repo-search.visible { display: flex; }
+    .repo-search-label {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-input, var(--cp-surface));
+      box-shadow: var(--shadow-inset, none);
+    }
+    .repo-search-label:focus-within {
+      outline: 2px solid var(--color-focus-outline, var(--cp-accent));
+      outline-offset: -1px;
+    }
+    .repo-search-label svg {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      fill: var(--text-color-muted, var(--cp-text-muted));
+    }
+    .repo-search-label input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+      font: inherit;
+    }
+    .repo-search-clear {
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .repo-search-clear:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .repo-search-clear[hidden] { display: none; }
+    .repo-search-status {
+      min-width: 190px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      text-align: right;
+    }
+    .repo-search-pending {
+      grid-column: 1 / -1;
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-large, 8px);
+      background: var(--background-color-default, var(--cp-surface));
+      color: var(--text-color-muted, var(--cp-text-muted));
+      text-align: center;
+    }
+    .repo-search-pending > div {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+    }
+    .repo-search-pending strong {
+      color: var(--text-color-default, var(--cp-text));
+    }
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; }
+    .legend-item { display: inline-flex; gap: 7px; align-items: center; }
+    .legend-mark {
+      width: 12px;
+      height: 12px;
+      border: 2px solid currentColor;
+    }
+    .legend-mark.flowing { color: var(--cp-success); }
+    .legend-mark.waiting { color: var(--cp-warning); border-radius: 50%; }
+    .legend-mark.blocked { color: var(--cp-danger); transform: rotate(45deg); }
+    .legend-mark.merging { color: var(--cp-accent); border-width: 5px 2px 2px; }
+
+    .harbor {
+      position: relative;
+      min-height: calc(100vh - 198px);
+      display: grid;
+      grid-template-columns: 1fr 132px 1fr;
+      border-bottom: 1px solid var(--cp-border-strong);
+      overflow: hidden;
+    }
+    .berth-bank {
+      padding: 20px 20px 26px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
+      gap: 12px;
+      align-content: stretch;
+    }
+    .berth-bank.left { border-right: 1px solid var(--cp-border); }
+    .berth-bank.right { border-left: 1px solid var(--cp-border); }
+    .berth {
+      position: relative;
+      min-height: 208px;
+      padding: 12px 10px 10px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem 0.625rem 0 0;
+      background: var(--cp-surface);
+      overflow: hidden;
+    }
+    .berth:hover { border-color: var(--cp-border-strong); }
+    .berth-head {
+      min-height: 60px;
+      display: grid;
+      align-content: start;
+      gap: 4px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    .berth-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 700;
+      font-size: 0.84rem;
+    }
+    .berth-count {
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 0.73rem;
+    }
+    .lane {
+      position: relative;
+      height: calc(100% - 60px);
+      min-height: 130px;
+      border-left: 1px dashed var(--cp-border-strong);
+      border-right: 1px dashed var(--cp-border-strong);
+      margin: 0 10px;
+    }
+    .lane::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 1px;
+      height: 100%;
+      background: var(--cp-border);
+    }
+    .vessel {
+      position: absolute;
+      left: 50%;
+      width: 26px;
+      height: 12px;
+      translate: -50% 0;
+      border: 2px solid currentColor;
+      background: var(--cp-surface);
+      z-index: 1;
+    }
+    .vessel::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      top: 2px;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      border-left: 6px solid currentColor;
+    }
+    .vessel.flowing { color: var(--cp-success); }
+    .vessel.waiting { color: var(--cp-warning); border-style: dashed; }
+    .vessel.blocked { color: var(--cp-danger); width: 18px; transform: rotate(45deg); }
+    .vessel.blocked::after { display: none; }
+    .vessel.merging { color: var(--cp-accent); border-top-width: 5px; }
+    .signal {
+      position: absolute;
+      right: 7px;
+      bottom: 7px;
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      color: var(--cp-text-muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .signal::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border: 2px solid currentColor;
+    }
+    .signal.blocked { color: var(--cp-danger); }
+    .signal.waiting { color: var(--cp-warning); }
+    .signal.flowing { color: var(--cp-success); }
+    .signal.merging { color: var(--cp-accent); }
+
+    .merge-lock {
+      position: relative;
+      background: var(--cp-surface-soft);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      text-align: center;
+    }
+    .lock-title {
+      padding: 16px 8px;
+      border-bottom: 1px solid var(--cp-border);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+    }
+    .lock-channel {
+      position: relative;
+      width: 58px;
+      height: calc(100% - 34px);
+      min-height: 280px;
+      margin: 16px auto;
+      border-left: 3px double var(--cp-border-strong);
+      border-right: 3px double var(--cp-border-strong);
+    }
+    .lock-channel::before,
+    .lock-channel::after {
+      content: "";
+      position: absolute;
+      left: -16px;
+      right: -16px;
+      height: 8px;
+      border-top: 2px solid var(--cp-warning);
+      border-bottom: 2px solid var(--cp-warning);
+    }
+    .lock-channel::before { top: 16px; }
+    .lock-channel::after { bottom: 16px; }
+    .current {
+      position: absolute;
+      left: 50%;
+      top: 18%;
+      bottom: 18%;
+      width: 2px;
+      background: var(--cp-accent);
+      transform: translateX(-50%);
+    }
+    .current::after {
+      content: "";
+      position: absolute;
+      left: -5px;
+      bottom: -1px;
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid var(--cp-accent);
+      border-bottom: 2px solid var(--cp-accent);
+      transform: rotate(45deg);
+    }
+    .lock-rate {
+      padding: 14px 8px;
+      border-top: 1px solid var(--cp-border);
+    }
+    .lock-rate strong {
+      display: block;
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .lock-rate span { color: var(--cp-text-muted); font-size: 0.7rem; }
+
+    .watch-strip {
+      padding: 16px 28px 20px;
+      background: var(--cp-surface);
+    }
+    .watch-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .watch-title strong { font-size: 1rem; }
+    .watch-title span { color: var(--cp-text-muted); font-size: 0.78rem; }
+    .watch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .watch-item {
+      min-height: 110px;
+      padding: 14px 16px;
+      border-right: 1px solid var(--cp-border);
+      background: var(--cp-bg-elevated);
+    }
+    .watch-item:last-child { border-right: 0; }
+    .watch-item .flag {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 22px;
+      margin-right: 8px;
+      border: 2px solid currentColor;
+      color: var(--cp-danger);
+      font-weight: 800;
+    }
+    .watch-item h3 {
+      display: inline;
+      margin: 0;
+      font-size: 0.94rem;
+    }
+    .watch-item p {
+      margin: 10px 0 8px;
+      color: var(--cp-text);
+      font-size: 0.82rem;
+    }
+    .watch-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 0.7rem;
+    }
+
+    .convoy {
+      padding: 22px 28px 28px;
+      display: grid;
+      grid-template-columns: 220px 1fr 180px;
+      gap: 0;
+      min-height: calc(100vh - 198px);
+    }
+    .convoy-labels,
+    .convoy-flow,
+    .convoy-actions {
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+    }
+    .convoy-labels { border-radius: 16px 0 0 16px; overflow: hidden; }
+    .convoy-actions { border-radius: 0 16px 16px 0; overflow: hidden; }
+    .convoy-flow { border-left: 0; border-right: 0; }
+    .convoy-row {
+      min-height: 112px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    .convoy-row:last-child { border-bottom: 0; }
+    .convoy-label strong { display: block; margin-bottom: 5px; }
+    .convoy-label span { color: var(--cp-text-muted); font-size: 0.76rem; }
+    .flow-row {
+      position: relative;
+      min-height: 112px;
+      border-bottom: 1px solid var(--cp-border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .flow-row:last-child { border-bottom: 0; }
+    .checkpoint {
+      position: relative;
+      border-right: 1px dashed var(--cp-border);
+    }
+    .checkpoint:last-child { border-right: 0; }
+    .checkpoint-label {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      color: var(--cp-text-muted);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .flow-vessel {
+      position: absolute;
+      top: 58px;
+      width: 38px;
+      height: 15px;
+      border: 2px solid currentColor;
+      color: var(--cp-success);
+      background: var(--cp-surface);
+    }
+    .flow-vessel::after {
+      content: "";
+      position: absolute;
+      right: -9px;
+      top: 2px;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 8px solid currentColor;
+    }
+    .flow-vessel.waiting { color: var(--cp-warning); border-style: dashed; }
+    .flow-vessel.blocked { color: var(--cp-danger); }
+    .flow-vessel.merging { color: var(--cp-accent); border-top-width: 6px; }
+    .action-row strong { display: block; font-size: 1.15rem; }
+    .action-row span { color: var(--cp-text-muted); font-size: 0.72rem; }
+    .action-row p { margin: 12px 0 0; font-size: 0.78rem; }
+
+    .watchtower {
+      min-height: calc(100vh - 198px);
+      padding: 28px;
+      display: grid;
+      grid-template-columns: minmax(280px, 0.8fr) minmax(540px, 1.5fr);
+      gap: 24px;
+    }
+    .mast {
+      min-height: 610px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 16px;
+      background: var(--cp-surface);
+      overflow: hidden;
+    }
+    .mast-head { padding: 18px; border-bottom: 1px solid var(--cp-border); }
+    .mast-head h2 { margin: 0; font-size: 1.25rem; }
+    .mast-head p { margin: 6px 0 0; color: var(--cp-text-muted); font-size: 0.82rem; }
+    .signal-stack {
+      width: 116px;
+      align-self: center;
+      justify-self: center;
+      display: grid;
+      gap: 8px;
+      padding: 18px;
+      border-left: 2px solid var(--cp-border-strong);
+      border-right: 2px solid var(--cp-border-strong);
+    }
+    .signal-bar {
+      height: 34px;
+      border: 2px solid currentColor;
+      background: var(--cp-surface-soft);
+    }
+    .signal-bar.on.success { background: var(--cp-success); color: var(--cp-success); }
+    .signal-bar.on.warning { background: var(--cp-warning); color: var(--cp-warning); }
+    .signal-bar.on.danger { background: var(--cp-danger); color: var(--cp-danger); }
+    .mast-rate {
+      padding: 18px;
+      text-align: center;
+      border-top: 1px solid var(--cp-border);
+    }
+    .mast-rate strong { display: block; font-size: 4.4rem; line-height: 0.9; letter-spacing: -0.06em; }
+    .mast-rate span { color: var(--cp-text-muted); font-size: 0.78rem; }
+    .attention-board {
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface);
+      overflow: hidden;
+    }
+    .attention-head {
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    .attention-head h2 { margin: 0; font-size: 1.25rem; }
+    .attention-head span { color: var(--cp-danger); font-weight: 700; }
+    .attention-row {
+      min-height: 92px;
+      display: grid;
+      grid-template-columns: 52px minmax(160px, 1.2fr) minmax(180px, 1.5fr) 120px;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    .attention-row:last-child { border-bottom: 0; }
+    .attention-rank {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--cp-danger);
+      color: var(--cp-danger);
+      font-weight: 800;
+    }
+    .attention-repo strong, .attention-action strong { display: block; }
+    .attention-repo span, .attention-action span {
+      color: var(--cp-text-muted);
+      font-size: 0.74rem;
+    }
+    .attention-age {
+      text-align: right;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      color: var(--cp-warning);
+    }
+
+    .footer {
+      min-height: 54px;
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      font-size: 0.74rem;
+    }
+    .footer a { color: var(--cp-link); }
+    .live-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .live-mark::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--cp-success);
+      border-radius: 50%;
+    }
+
+    /* GitHub product surface, following Primer patterns used by Octave and Takeoff. */
+    :root {
+      --status-bar-color: var(--background-color-default, #ffffff);
+      --cp-bg: var(--background-color-default, #ffffff);
+      --cp-bg-elevated: var(--background-color-default, #ffffff);
+      --cp-surface: var(--background-color-default, #ffffff);
+      --cp-surface-soft: var(--background-color-muted, #f6f8fa);
+      --cp-border: var(--border-color-muted, #d8dee4);
+      --cp-border-strong: var(--border-color-default, #d1d9e0);
+      --cp-text: var(--text-color-default, #1f2328);
+      --cp-text-muted: var(--text-color-muted, #59636e);
+      --cp-text-soft: var(--text-color-muted, #59636e);
+      --cp-accent: var(--background-color-accent-emphasis, #0969da);
+      --cp-accent-hover: var(--background-color-accent-emphasis, #0969da);
+      --cp-accent-soft: var(--background-color-accent-muted, #ddf4ff);
+      --cp-accent-fg: var(--text-color-on-emphasis, #ffffff);
+      --cp-success: var(--text-color-success, #1a7f37);
+      --cp-danger: var(--text-color-danger, #cf222e);
+      --cp-warning: var(--text-color-attention, #9a6700);
+      --cp-link: var(--text-color-link, #0969da);
+    }
+    body {
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif);
+      font-size: var(--text-body-medium, 14px);
+      line-height: var(--leading-body-medium, 20px);
+    }
+    .app { background: var(--background-color-default, var(--cp-bg)); }
+    .topbar {
+      min-height: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto minmax(250px, 1fr);
+      gap: 0;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .brand {
+      min-height: 64px;
+      padding: 12px 20px;
+      gap: 10px;
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      color: var(--text-color-default, var(--cp-text));
+    }
+    .brand-mark svg { width: 32px; height: 32px; fill: currentColor; }
+    h1 { font-size: var(--text-title-medium, 20px); letter-spacing: -0.02em; }
+    .subline { margin-top: 1px; font-size: var(--text-body-small, 12px); }
+    .org-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+    .control {
+      min-height: 32px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-input, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      box-shadow: var(--shadow-inset, none);
+    }
+    select.control { min-width: 180px; padding: 5px 30px 5px 10px; }
+    button.control {
+      padding: 5px 12px;
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    button.control:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    button.control:disabled { color: var(--text-color-disabled, var(--cp-text-muted)); cursor: wait; }
+    .auto-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .auto-refresh input { accent-color: var(--background-color-accent-emphasis, var(--cp-accent)); }
+    .fleet-health {
+      padding: 10px 20px;
+      gap: 10px;
+    }
+    .health-number { font-size: var(--text-title-large, 32px); letter-spacing: -0.04em; }
+    .health-copy { max-width: 180px; }
+    .view-switcher {
+      grid-column: 1 / -1;
+      order: 4;
+      min-height: 48px;
+      padding: 0 16px;
+      gap: 4px;
+      border: 0;
+      border-top: 1px solid var(--border-color-muted, var(--cp-border));
+      border-radius: 0;
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .view-switcher button {
+      position: relative;
+      min-height: 48px;
+      padding: 0 14px;
+      border-radius: 0;
+      color: var(--text-color-default, var(--cp-text));
+    }
+    .view-switcher button:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .view-switcher button[aria-selected="true"] {
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+    }
+    .view-switcher button[aria-selected="true"]::after {
+      position: absolute;
+      right: 12px;
+      bottom: 0;
+      left: 12px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--underlineNav-borderColor-active, var(--cp-accent));
+      content: "";
+    }
+    .screen-head { background: var(--background-color-muted, var(--cp-surface-soft)); }
+    .berth, .watch-grid, .mast, .attention-board, .convoy-labels, .convoy-flow, .convoy-actions {
+      border-radius: var(--radius-medium, 6px);
+      box-shadow: var(--shadow-xsmall, none);
+    }
+    .berth { border-radius: var(--radius-medium, 6px); }
+    .tooltip {
+      position: fixed;
+      z-index: 999;
+      max-width: 300px;
+      padding: 6px 8px;
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-emphasis, #25292e);
+      color: var(--text-color-on-emphasis, #ffffff);
+      font-size: var(--text-body-small, 12px);
+      line-height: 18px;
+      box-shadow: var(--shadow-small, var(--cp-shadow));
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(3px);
+      transition: opacity 80ms ease, transform 80ms ease;
+    }
+    .tooltip.visible { opacity: 1; transform: translateY(0); }
+    .loading-banner {
+      display: none;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-color-accent, var(--cp-accent));
+      background: var(--background-color-accent-muted, var(--cp-accent-soft));
+      color: var(--text-color-default, var(--cp-text));
+    }
+    .loading-banner.visible { display: block; }
+    .loading-stage {
+      display: none;
+      min-height: calc(100vh - 180px);
+      place-items: center;
+      padding: 48px;
+      background: var(--background-color-default, var(--cp-surface));
+      text-align: center;
+    }
+    .app.org-loading .loading-stage { display: grid; }
+    .app.org-loading main { display: none; }
+    .loading-stage-content {
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+    }
+    .loading-stage-content strong {
+      color: var(--text-color-default, var(--cp-text));
+      font-size: var(--text-title-small, 16px);
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border-color-default, var(--cp-border));
+      border-top-color: var(--background-color-accent-emphasis, var(--cp-accent));
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+    }
+    .error-banner {
+      display: none;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-color-danger, var(--cp-danger));
+      background: var(--background-color-danger-muted, var(--cp-surface-soft));
+      color: var(--text-color-danger, var(--cp-danger));
+    }
+    .error-banner.visible { display: block; }
+    .overview-layout {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .layout-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      overflow: hidden;
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .layout-toggle button {
+      min-height: 32px;
+      padding: 5px 12px;
+      border: 0;
+      border-right: 1px solid var(--border-color-control, var(--cp-border-strong));
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+      cursor: pointer;
+    }
+    .layout-toggle button:last-child { border-right: 0; }
+    .layout-toggle button:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .layout-toggle button[aria-pressed="true"] {
+      background: var(--background-color-selected, var(--cp-accent-soft));
+      color: var(--text-color-accent, var(--cp-link));
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .overview-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-muted, var(--cp-surface-soft));
+    }
+    .summary-cell {
+      padding: 14px 20px;
+      border-right: 1px solid var(--border-color-default, var(--cp-border));
+    }
+    .summary-cell:last-child { border-right: 0; }
+    .summary-cell strong { display: block; font-size: var(--text-title-medium, 20px); }
+    .summary-cell span { color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+    .repo-collection {
+      padding: 20px 28px 28px;
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .repo-collection.list-view {
+      display: block;
+    }
+    .repo-collection.list-view .repo-entry {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.9fr) minmax(300px, 1.4fr) 86px 92px 124px;
+      grid-template-areas:
+        "title track count state action"
+        "updated track count state action";
+      gap: 8px 16px;
+      align-items: center;
+      min-height: 104px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-bottom: 0;
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .repo-collection.list-view .repo-entry:first-child { border-radius: var(--radius-medium, 6px) var(--radius-medium, 6px) 0 0; }
+    .repo-collection.list-view .repo-entry:last-child {
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: 0 0 var(--radius-medium, 6px) var(--radius-medium, 6px);
+    }
+    .repo-collection.list-view .repo-entry:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .repo-collection.card-view {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+    .repo-collection.card-view .repo-entry {
+      min-height: 336px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: minmax(92px, auto) auto auto auto auto;
+      grid-template-areas:
+        "title title"
+        "track track"
+        "count state"
+        "updated updated"
+        "action action";
+      gap: 14px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+      box-shadow: var(--shadow-xsmall, none);
+    }
+    .repo-collection.card-view .repo-entry-title {
+      min-height: 92px;
+    }
+    .repo-collection.card-view .repo-entry-title p {
+      display: -webkit-box;
+      max-width: 62ch;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+    .repo-collection.card-view .repo-personal-button {
+      width: 100%;
+      min-height: 44px;
+      align-self: end;
+    }
+    .repo-entry-title {
+      min-width: 0;
+      grid-area: title;
+    }
+    .repo-personal-button {
+      grid-area: action;
+      min-height: 36px;
+      align-self: center;
+      padding: 6px 10px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      white-space: normal;
+      cursor: pointer;
+    }
+    .repo-personal-button:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .repo-personal-button[aria-pressed="true"] {
+      border-color: var(--border-color-success, var(--cp-success));
+      color: var(--text-color-success, var(--cp-success));
+    }
+    .repo-personal-button:disabled { color: var(--text-color-disabled, var(--cp-text-muted)); cursor: wait; }
+    .repo-entry-title a {
+      color: var(--text-color-link, var(--cp-link));
+      font-size: var(--text-title-small, 16px);
+      font-weight: var(--font-weight-semibold, 600);
+      text-decoration: none;
+    }
+    .repo-entry-title a:hover { text-decoration: underline; }
+    .repo-entry-title p {
+      margin: 4px 0 0;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .repo-collection.list-view .repo-entry-title p {
+      max-width: 56ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .repo-count {
+      grid-area: count;
+      min-width: 82px;
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .repo-count span, .repo-updated {
+      display: block;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      font-weight: 400;
+    }
+    .repo-state {
+      grid-area: state;
+      min-width: 82px;
+      justify-self: start;
+      justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border: 1px solid currentColor;
+      border-radius: var(--radius-full, 999px);
+      font-size: var(--text-body-small, 12px);
+      font-weight: var(--font-weight-semibold, 600);
+      text-transform: capitalize;
+    }
+    .repo-state::before {
+      width: 7px;
+      height: 7px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      content: "";
+    }
+    .repo-state.flowing { color: var(--text-color-success, var(--cp-success)); }
+    .repo-state.waiting { color: var(--text-color-attention, var(--cp-warning)); }
+    .repo-state.blocked { color: var(--text-color-danger, var(--cp-danger)); }
+    .repo-state.merging { color: var(--text-color-accent, var(--cp-link)); }
+    .repo-state.unknown { color: var(--text-color-muted, var(--cp-text-muted)); }
+    .repo-track {
+      grid-area: track;
+      position: relative;
+      height: 8px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-full, 999px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      overflow: hidden;
+    }
+    .repo-track > i {
+      display: block;
+      height: 100%;
+      background: currentColor;
+    }
+    .repo-track.flowing { color: var(--text-color-success, var(--cp-success)); }
+    .repo-track.waiting { color: var(--text-color-attention, var(--cp-warning)); }
+    .repo-track.blocked { color: var(--text-color-danger, var(--cp-danger)); }
+    .repo-track.merging { color: var(--text-color-accent, var(--cp-link)); }
+    .repo-track.unknown { color: var(--text-color-muted, var(--cp-text-muted)); }
+    .repo-telemetry,
+    .metric-grid {
+      grid-area: track;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .metric-switch {
+      --metric-color: var(--text-color-muted, var(--cp-text-muted));
+      min-width: 0;
+      min-height: 44px;
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 8px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-size: var(--text-body-small, 12px);
+      line-height: 16px;
+      text-decoration: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-switch::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--metric-color);
+      content: "";
+    }
+    .metric-switch:hover {
+      border-color: var(--metric-color);
+      background: var(--background-color-hover, var(--cp-surface-soft));
+    }
+    .metric-switch span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .metric-switch strong {
+      color: var(--metric-color);
+      font-size: var(--text-body-medium, 14px);
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .metric-switch.zero {
+      color: var(--text-color-muted, var(--cp-text-muted));
+      opacity: 0.72;
+    }
+    .metric-switch.blocked { --metric-color: #cf222e; }
+    .metric-switch.review { --metric-color: #0969da; }
+    .metric-switch.drafts { --metric-color: #8250df; }
+    .metric-switch.checks { --metric-color: #bc4c00; }
+    .metric-switch.ready { --metric-color: #1a7f37; }
+    .metric-switch.other { --metric-color: #bf3989; }
+    .metric-unavailable {
+      grid-area: track;
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .repo-updated { grid-area: updated; }
+    .repo-collection.card-view .repo-count,
+    .repo-collection.card-view .repo-state,
+    .repo-collection.card-view .repo-updated { align-self: end; }
+
+    .repo-scope-bar {
+      min-height: 54px;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .repo-scope-tabs {
+      display: flex;
+      min-width: 0;
+    }
+    .repo-scope-tab {
+      position: relative;
+      min-height: 54px;
+      padding: 0 14px;
+      border: 0;
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .repo-scope-tab:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .repo-scope-tab[aria-selected="true"]::after {
+      position: absolute;
+      right: 12px;
+      bottom: 0;
+      left: 12px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--underlineNav-borderColor-active, var(--cp-accent));
+      content: "";
+    }
+    .repo-scope-count {
+      min-width: 20px;
+      display: inline-flex;
+      justify-content: center;
+      margin-left: 6px;
+      padding: 0 6px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-full, 999px);
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-badge, 11px);
+      line-height: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+    .repo-scope-caption {
+      align-self: center;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      text-align: right;
+    }
+    .repo-empty {
+      margin: 20px 28px 28px;
+      padding: 32px;
+      border: 1px dashed var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      text-align: center;
+    }
+    .repo-empty h2 { margin: 0 0 6px; font-size: var(--text-title-small, 16px); }
+    .repo-empty p { max-width: 56ch; margin: 0 auto; color: var(--text-color-muted, var(--cp-text-muted)); }
+    .load-more {
+      min-height: 76px;
+      display: none;
+      place-items: center;
+      gap: 8px;
+      padding: 12px 28px 24px;
+      background: var(--background-color-default, var(--cp-surface));
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .load-more.visible { display: grid; }
+    .load-more button {
+      min-height: 36px;
+      padding: 6px 14px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .load-more button:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .load-more button:disabled { color: var(--text-color-disabled, var(--cp-text-muted)); cursor: wait; }
+
+    .ambient-overview {
+      display: grid;
+      grid-template-columns: minmax(210px, 0.7fr) minmax(360px, 1.4fr) minmax(320px, 1fr);
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .ambient-panel {
+      min-width: 0;
+      padding: 22px 24px;
+      border-right: 1px solid var(--border-color-default, var(--cp-border));
+    }
+    .ambient-panel:last-child { border-right: 0; }
+    .ambient-panel h2 {
+      margin: 0 0 4px;
+      font-size: var(--text-title-small, 16px);
+    }
+    .ambient-panel > p {
+      margin: 0 0 16px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .ambient-status {
+      width: 100%;
+      min-height: 100%;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .ambient-status:hover .ambient-number,
+    .ambient-status:focus-visible .ambient-number { text-decoration: underline; }
+    .ambient-number {
+      font-size: clamp(3.75rem, 7vw, 6rem);
+      line-height: 0.88;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-bold, 700);
+      color: var(--text-color-danger, var(--cp-danger));
+    }
+    .ambient-status strong { margin-top: 12px; font-size: var(--text-title-medium, 20px); }
+    .ambient-status span { margin-top: 4px; color: var(--text-color-muted, var(--cp-text-muted)); }
+    .fleet-treemap {
+      min-height: 176px;
+      display: grid;
+      grid-template-columns: 176px minmax(220px, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+    .distribution-donut {
+      position: relative;
+      width: 176px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--distribution-gradient, var(--background-color-muted, var(--cp-surface-soft)));
+    }
+    .distribution-donut::after {
+      position: absolute;
+      inset: 34px;
+      border-radius: 50%;
+      background: var(--background-color-default, var(--cp-surface));
+      box-shadow: inset 0 0 0 1px var(--border-color-muted, var(--cp-border));
+      content: "";
+    }
+    .distribution-total {
+      position: absolute;
+      inset: 42px;
+      z-index: 1;
+      display: grid;
+      align-content: center;
+      text-align: center;
+    }
+    .distribution-total strong {
+      font-size: var(--text-title-large, 32px);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .distribution-total span {
+      margin-top: 4px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .distribution-legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .distribution-legend .metric-switch {
+      min-height: 50px;
+      grid-template-columns: 8px minmax(0, 1fr) auto;
+    }
+    .distribution-empty {
+      grid-column: 1 / -1;
+      min-height: 152px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      color: var(--text-color-muted, var(--cp-text-muted));
+    }
+    .ambient-actions {
+      display: grid;
+      gap: 8px;
+    }
+    .ambient-action {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 54px;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      color: var(--text-color-default, var(--cp-text));
+      text-decoration: none;
+    }
+    .ambient-action:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .ambient-action-rank {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border-color-danger, var(--cp-danger));
+      border-radius: 50%;
+      color: var(--text-color-danger, var(--cp-danger));
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .ambient-action-copy { min-width: 0; }
+    .ambient-action-copy strong,
+    .ambient-action-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ambient-action-copy span {
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .ambient-action-open {
+      color: var(--text-color-link, var(--cp-link));
+      font-weight: var(--font-weight-semibold, 600);
+      white-space: nowrap;
+    }
+    .flow-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(240px, 1fr));
+      gap: 16px;
+      padding: 24px 28px 28px;
+    }
+    .flow-stage {
+      min-width: 0;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+      overflow: hidden;
+    }
+    .flow-stage-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+    }
+    .flow-stage-head h2 { margin: 0; font-size: var(--text-title-small, 16px); }
+    .flow-stage-head strong {
+      font-size: var(--text-title-large, 32px);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .flow-stage-copy {
+      min-height: 52px;
+      margin: 0;
+      padding: 12px 16px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .flow-repos { border-top: 1px solid var(--border-color-muted, var(--cp-border)); }
+    .flow-repo-link {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color-muted, var(--cp-border));
+      color: var(--text-color-link, var(--cp-link));
+      text-decoration: none;
+    }
+    .flow-repo-link:last-child { border-bottom: 0; }
+    .flow-repo-link:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .flow-repo-link strong { color: var(--text-color-default, var(--cp-text)); font-variant-numeric: tabular-nums; }
+    .flow-stage-all {
+      display: block;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color-default, var(--cp-border));
+      color: var(--text-color-link, var(--cp-link));
+      font-weight: var(--font-weight-semibold, 600);
+      text-decoration: none;
+    }
+    .watchtower { display: block; min-height: 0; }
+    .attention-board { max-width: 1240px; margin: 0 auto; }
+    .attention-row { grid-template-columns: 52px minmax(220px, 1.5fr) minmax(220px, 1fr) 120px 94px; }
+    .attention-open {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      text-decoration: none;
+    }
+    .attention-open:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .fleet-health {
+      border: 0;
+      background: transparent;
+      color: var(--text-color-default, var(--cp-text));
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .fleet-health:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
+    .health-number { color: var(--text-color-danger, var(--cp-danger)); }
+    .app, main, .screen, .topbar > * { min-width: 0; }
+
+    @keyframes tide {
+      0% { transform: translateY(-18px); }
+      55% { transform: translateY(18px); }
+      100% { transform: translateY(-18px); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .current { animation: tide 8s cubic-bezier(.2,.8,.2,1) infinite; }
+
+    @media (max-width: 1180px) {
+      .repo-collection.list-view .repo-entry {
+        grid-template-columns: minmax(220px, 1fr) 100px 110px 124px;
+        grid-template-areas:
+          "title count state action"
+          "track track track track"
+          "updated updated updated updated";
+        gap: 10px 16px;
+      }
+      .repo-collection.list-view .repo-telemetry {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .repo-collection.list-view .repo-updated { text-align: left; }
+    }
+
+    @media (max-width: 1180px) {
+      .topbar { grid-template-columns: 1fr auto; }
+      .view-switcher { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; }
+      .view-switcher button { flex: 1; }
+      .fleet-health { grid-column: 2; grid-row: 1; }
+      .harbor { grid-template-columns: 1fr 92px 1fr; }
+      .berth-bank { grid-template-columns: repeat(2, 1fr); }
+      .convoy { grid-template-columns: 180px 1fr 150px; }
+      .ambient-overview { grid-template-columns: 0.7fr 1.3fr; }
+      .ambient-actions-panel { grid-column: 1 / -1; border-top: 1px solid var(--border-color-default, var(--cp-border)); }
+      .fleet-treemap { grid-template-columns: 160px minmax(220px, 1fr); }
+      .distribution-donut { width: 160px; }
+      .flow-board { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .repo-collection.card-view { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .topbar { grid-template-columns: 1fr; }
+      .brand { grid-column: 1; grid-row: 1; padding: 12px 16px; }
+      .org-controls {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        border-top: 1px solid var(--border-color-muted, var(--cp-border));
+      }
+      .org-controls .control,
+      .org-controls .auto-refresh { min-height: 44px; }
+      .org-controls select.control:first-child { flex: 1 1 100%; min-width: 0; }
+      .org-controls select.control:last-child { min-width: 92px; }
+      .auto-refresh { flex: 1 1 auto; }
+      .fleet-health {
+        grid-column: 1;
+        grid-row: 3;
+        width: 100%;
+        min-height: 68px;
+        justify-self: stretch;
+        justify-content: flex-start;
+        padding: 10px 16px;
+        text-align: left;
+        border-top: 1px solid var(--border-color-muted, var(--cp-border));
+      }
+      .view-switcher {
+        grid-column: 1;
+        grid-row: 4;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: 0 8px;
+        overflow: visible;
+      }
+      .view-switcher button {
+        width: 100%;
+        min-width: 0;
+        min-height: 56px;
+        padding: 4px 8px;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: normal;
+      }
+      .screen-head { padding: 12px 16px; align-items: flex-start; flex-direction: column; }
+      .repo-search { padding: 10px 16px; flex-wrap: wrap; }
+      .repo-search-label { flex-basis: calc(100% - 72px); min-height: 44px; }
+      .repo-search-clear { min-height: 44px; }
+      .repo-search-status { width: 100%; min-width: 0; text-align: left; }
+      .repo-scope-bar { padding: 0 8px; align-items: stretch; flex-direction: column; gap: 0; }
+      .repo-scope-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .repo-scope-tab { min-width: 0; padding: 0 8px; }
+      .repo-scope-caption { padding: 8px; text-align: left; }
+      .harbor { grid-template-columns: 1fr; }
+      .berth-bank { grid-template-columns: repeat(2, minmax(130px, 1fr)); padding: 14px; }
+      .merge-lock { grid-row: 2; min-height: 240px; }
+      .lock-channel { min-height: 120px; }
+      .watch-strip { padding: 16px; }
+      .watch-grid { grid-template-columns: 1fr; }
+      .watch-item { border-right: 0; border-bottom: 1px solid var(--cp-border); }
+      .watch-item:last-child { border-bottom: 0; }
+      .convoy { padding: 14px; grid-template-columns: 140px minmax(520px, 1fr) 140px; overflow-x: auto; }
+      .watchtower { padding: 14px; grid-template-columns: 1fr; }
+      .overview-summary { grid-template-columns: 1fr; }
+      .summary-cell { border-right: 0; border-bottom: 1px solid var(--cp-border); }
+      .repo-collection { padding: 14px; }
+      .repo-collection.list-view .repo-entry {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+          "title title"
+          "track track"
+          "count state"
+          "updated updated"
+          "action action";
+      }
+      .repo-personal-button { min-height: 44px; width: 100%; }
+      .repo-collection.list-view .repo-telemetry {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .ambient-overview { grid-template-columns: 1fr; }
+      .ambient-panel { border-right: 0; border-bottom: 1px solid var(--border-color-default, var(--cp-border)); }
+      .ambient-panel:last-child { border-bottom: 0; }
+      .ambient-status { min-height: 176px; }
+      .fleet-treemap {
+        min-height: 0;
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+      .distribution-legend { width: 100%; }
+      .flow-board { grid-template-columns: 1fr; padding: 14px; }
+      .attention-row { grid-template-columns: 40px minmax(0, 1fr); padding: 14px; }
+      .attention-action, .attention-age, .attention-open { grid-column: 2; text-align: left; }
+      .attention-open { min-height: 44px; }
+      .attention-head { align-items: flex-start; gap: 8px; }
+      .footer { padding: 12px 16px; align-items: flex-start; flex-direction: column; }
+      .repo-empty { margin: 14px; padding: 24px 16px; }
+      .load-more { padding-right: 14px; padding-left: 14px; }
+    }
+    @media (max-width: 480px) {
+      .distribution-legend { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true" data-help="GitHub organization merge operations">
+          <svg viewBox="0 0 24 24" role="img"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.4-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.96 10.96 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
+        </div>
+        <div>
+          <h1>Merge Harbor</h1>
+          <div class="subline" id="org-subline">Choose an organization to load live repository data</div>
+        </div>
+      </div>
+      <div class="org-controls" aria-label="Organization and refresh controls">
+        <select id="org-select" class="control" data-help="Select one of the organizations available to your signed-in GitHub account" aria-label="GitHub organization">
+          <option>Loading organizations…</option>
+        </select>
+        <button id="refresh-button" type="button" class="control" data-help="Refresh repository and open pull request totals now">Refresh</button>
+        <label class="auto-refresh" data-help="Automatically reload repository data on the selected interval">
+          <input id="auto-refresh" type="checkbox" checked>
+          Auto-refresh
+        </label>
+        <select id="refresh-interval" class="control" data-help="Choose how often live GitHub data is refreshed" aria-label="Auto-refresh interval">
+          <option value="60000">1 min</option>
+          <option value="120000">2 min</option>
+          <option value="300000">5 min</option>
+        </select>
+      </div>
+      <nav class="view-switcher" aria-label="Display view">
+        <button type="button" aria-selected="true" data-view="overview" data-help="See fleet urgency, the full pull request distribution, and the busiest repositories">Overview</button>
+        <button type="button" aria-selected="false" data-view="convoy" data-help="See live pull request counts by lifecycle condition and open filtered queues">PR flow</button>
+        <button type="button" aria-selected="false" data-view="watchtower" data-help="Open the ranked pull requests where a human action can unblock flow">Needs attention</button>
+      </nav>
+      <a class="fleet-health" id="blocked-queue-link-top" href="https://github.com/pulls" target="_blank" rel="noreferrer" aria-label="Open blocked pull requests" data-help="Open the organization's blocked pull request queue on GitHub">
+        <div class="health-number" id="health-number">—</div>
+        <div class="health-copy">
+          <strong id="health-title">Loading fleet status</strong>
+          <span id="health-detail">Reading full-queue telemetry</span>
+        </div>
+      </a>
+    </header>
+    <div id="loading-banner" class="loading-banner" role="status">Refreshing GitHub organization data…</div>
+    <div id="error-banner" class="error-banner" role="alert"></div>
+    <div id="loading-stage" class="loading-stage" role="status" aria-live="polite">
+      <div class="loading-stage-content">
+        <div class="spinner" aria-hidden="true"></div>
+        <strong id="loading-stage-title">Loading organization telemetry</strong>
+        <span>Reading repositories, checks, reviews, drafts, and merge readiness from GitHub…</span>
+      </div>
+    </div>
+
+    <main>
+      <section id="overview" class="screen active" aria-label="Harbor overview">
+        <div class="repo-scope-bar">
+          <div class="repo-scope-tabs" role="tablist" aria-label="Repository set">
+            <button type="button" class="repo-scope-tab" data-repo-scope="personal" role="tab" aria-selected="false">My repos <span class="repo-scope-count" id="personal-repo-count">0</span></button>
+            <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true">Organization repos <span class="repo-scope-count" id="organization-repo-count">20</span></button>
+          </div>
+          <div class="repo-scope-caption" id="repo-scope-caption">Showing the selected organization</div>
+        </div>
+        <div class="ambient-overview">
+          <div class="ambient-panel">
+            <a class="ambient-status" id="blocked-queue-link" href="https://github.com/pulls" target="_blank" rel="noreferrer" data-help="Open the organization's blocked pull request queue on GitHub">
+              <span class="ambient-number" id="ambient-blocked">—</span>
+              <strong>blocked pull requests</strong>
+              <span id="ambient-blocked-detail">Loading full-queue status…</span>
+            </a>
+          </div>
+          <div class="ambient-panel">
+            <h2>Open pull request distribution</h2>
+            <p>Every open PR appears in exactly one lifecycle segment. Select a count to open that queue on GitHub.</p>
+            <div class="fleet-treemap" id="fleet-treemap"></div>
+          </div>
+          <div class="ambient-panel ambient-actions-panel">
+            <h2>Act now</h2>
+            <p>The highest-leverage recent pull requests, ranked by failed checks, conflicts, review state, and age.</p>
+            <div class="ambient-actions" id="ambient-actions"></div>
+          </div>
+        </div>
+        <div class="screen-head">
+          <div id="repo-summary"><strong>20 repositories</strong> · 2,907 open pull requests</div>
+          <div class="overview-layout">
+            <span>Layout</span>
+            <div class="layout-toggle" aria-label="Repository layout">
+              <button type="button" data-layout="list" aria-pressed="true" data-help="Show repositories as a compact GitHub-style list">List</button>
+              <button type="button" data-layout="card" aria-pressed="false" data-help="Show repositories as responsive summary cards">Cards</button>
+            </div>
+          </div>
+        </div>
+        <div id="repo-search" class="repo-search">
+          <label class="repo-search-label" for="repo-search-input" data-help="Search all available repositories in the selected organization by name or description">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 2a4.5 4.5 0 1 0 2.82 8.006l3.837 3.837.686-.686-3.837-3.837A4.5 4.5 0 0 0 6.5 2Zm-3.5 4.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"/></svg>
+            <input id="repo-search-input" type="search" autocomplete="off" placeholder="Search organization repositories">
+          </label>
+          <button id="repo-search-clear" class="repo-search-clear" type="button" hidden>Clear</button>
+          <span id="repo-search-status" class="repo-search-status">Search the selected organization</span>
+        </div>
+        <div id="repo-collection" class="repo-collection list-view"></div>
+        <div id="load-more" class="load-more" aria-live="polite">
+          <button id="load-more-button" type="button">Load 20 more repositories</button>
+          <span id="load-more-status">Scroll to load more from the selected organization.</span>
+        </div>
+      </section>
+
+      <section id="convoy" class="screen" aria-label="Convoy flow">
+        <div class="screen-head">
+          <div><strong>Pull request flow</strong> · live, mutually exclusive conditions across the displayed repositories</div>
+          <div>Select a repository or stage to open the corresponding GitHub queue</div>
+        </div>
+        <div class="flow-board" id="flow-board"></div>
+      </section>
+
+      <section id="watchtower" class="screen" aria-label="Watchtower">
+        <div class="screen-head">
+          <div><strong>Intervention queue</strong> · the next human actions with the highest flow leverage</div>
+          <div>Each row links directly to the pull request that needs attention</div>
+        </div>
+        <div class="watchtower">
+          <div class="attention-board">
+            <div class="attention-head"><h2>Next interventions</h2><span id="attention-count">Loading…</span></div>
+            <div id="attention-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="live-mark" id="refresh-status">Connecting to the signed-in GitHub account…</div>
+      <div>Source: <a id="source-link" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a></div>
+    </footer>
+  </div>
+  <div id="tooltip" class="tooltip" role="tooltip"></div>
+
+  <script>
+    const fallbackRepos = [
+      {name:"advisory-database", prs:1553, url:"https://github.com/github/advisory-database"},
+      {name:"codeql", prs:516, url:"https://github.com/github/codeql"},
+      {name:"github-mcp-server", prs:225, url:"https://github.com/github/github-mcp-server"},
+      {name:"spec-kit", prs:119, url:"https://github.com/github/spec-kit"},
+      {name:"gh-ost", prs:83, url:"https://github.com/github/gh-ost"},
+      {name:"agentfinder-catalog", prs:51, url:"https://github.com/github/agentfinder-catalog"},
+      {name:"copilot-cli", prs:49, url:"https://github.com/github/copilot-cli"},
+      {name:"codeql-action", prs:45, url:"https://github.com/github/codeql-action"},
+      {name:"choosealicense.com", prs:38, url:"https://github.com/github/choosealicense.com"},
+      {name:"codeql-coding-standards", prs:31, url:"https://github.com/github/codeql-coding-standards"},
+      {name:"forgoodfirstissue", prs:29, url:"https://github.com/github/forgoodfirstissue"},
+      {name:"awesome-copilot", prs:25, url:"https://github.com/github/awesome-copilot"},
+      {name:"gh-aw", prs:24, url:"https://github.com/github/gh-aw"},
+      {name:"gitignore", prs:21, url:"https://github.com/github/gitignore"},
+      {name:"local-action", prs:18, url:"https://github.com/github/local-action"},
+      {name:"freno", prs:17, url:"https://github.com/github/freno"},
+      {name:"ghas-jira-integration", prs:17, url:"https://github.com/github/ghas-jira-integration"},
+      {name:"squad", prs:16, url:"https://github.com/github/squad"},
+      {name:"vscode-codeql", prs:15, url:"https://github.com/github/vscode-codeql"},
+      {name:"explore", prs:15, url:"https://github.com/github/explore"}
+    ];
+
+    let repos = fallbackRepos.map(repo => ({ ...repo, owner: "github" }));
+    let organizationRepos = [];
+    let personalRepos = [];
+    let personalRepoKeys = new Set();
+    let activeRepoScope = "organization";
+    let organizationHasMore = false;
+    let organizationCatalogTotal = 0;
+    let organizationCatalogAvailableTotal = 0;
+    let organizationRepositoryCount = 0;
+    let organizationSearchQuery = "";
+    let organizationRequestVersion = 0;
+    let organizationRequestController;
+    let repositorySearchTimer;
+    let loadingMore = false;
+    let currentOwner = "github";
+    let refreshTimer;
+    let overviewLayout = "list";
+    const states = ["waiting","flowing","blocked","flowing","merging","flowing","waiting","blocked","flowing","merging","flowing","waiting","merging","flowing","blocked","flowing","waiting","merging","flowing","blocked"];
+    const stateLabel = { flowing:"clear", waiting:"waiting", blocked:"blocked", merging:"ready", unknown:"unknown" };
+
+    const escapeHtml = (value) => String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+    const stateAt = (index) => states[index % states.length];
+    function stateFor(repo, index) {
+      if (repo.metrics) {
+        if (repo.metrics.blocked > 0) return "blocked";
+        if (repo.metrics.review + repo.metrics.drafts + repo.metrics.checks > 0) return "waiting";
+        if (repo.metrics.ready > 0) return "merging";
+        return "flowing";
+      }
+      return repo.state || stateAt(index);
+    }
+
+    function repoStateDetail(repo, state) {
+      if (!repo.metrics) return repo.stateDetail || "Full-queue telemetry unavailable";
+      if (state === "blocked") return `${repo.metrics.blocked.toLocaleString()} open PRs have failed checks, merge conflicts, or changes requested`;
+      if (state === "waiting") return `${(repo.metrics.review + repo.metrics.drafts + repo.metrics.checks).toLocaleString()} open PRs await review, draft completion, or checks`;
+      if (state === "merging") return `${repo.metrics.ready.toLocaleString()} open PRs are approved with passing checks`;
+      return "No blocked, waiting, or ready pull requests in the current queue";
+    }
+
+    const stageCopy = {
+      blocked: "Failed checks, merge conflicts, or requested changes require action.",
+      review: "Non-draft pull requests are waiting for required review.",
+      drafts: "Draft pull requests are not ready to enter review.",
+      checks: "Non-draft pull requests are waiting for checks to finish.",
+      ready: "Approved pull requests have passing checks and are ready to merge.",
+      other: "Open pull requests not captured by the actionable lifecycle conditions."
+    };
+
+    function queueQualifier(key) {
+      return {
+        blocked: "(status:failure OR review:changes_requested)",
+        review: "review:required draft:false -status:failure",
+        drafts: "draft:true -status:failure -review:changes_requested",
+        checks: "status:pending draft:false -review:required -review:changes_requested",
+        ready: "review:approved status:success draft:false",
+        other: ""
+      }[key];
+    }
+
+    function queueQuery(owner, repoName, key) {
+      return `repo:${owner}/${repoName} is:pr is:open ${queueQualifier(key)}`.trim();
+    }
+
+    function queueUrl(owner, repoName, key) {
+      return `https://github.com/pulls?q=${encodeURIComponent(queueQuery(owner, repoName, key))}`;
+    }
+
+    function organizationQueueUrl(key) {
+      const query = queueQuery(currentOwner, "*", key).replace(`repo:${currentOwner}/*`, `org:${currentOwner}`);
+      return `https://github.com/pulls?q=${encodeURIComponent(query)}`;
+    }
+
+    function activeQueueUrl(key) {
+      if (activeRepoScope === "organization" && !organizationSearchQuery) return organizationQueueUrl(key);
+      if (!repos.length) return "https://github.com/pulls";
+      const repositoryTerms = repos.map(repo => `repo:${repo.owner}/${repo.name}`).join(" OR ");
+      const query = `(${repositoryTerms}) is:pr is:open ${queueQualifier(key)}`.trim();
+      return `https://github.com/pulls?q=${encodeURIComponent(query)}`;
+    }
+
+    function repoKey(owner, name) {
+      return `${owner.toLowerCase()}/${name.toLowerCase()}`;
+    }
+
+    function berth(repo, index) {
+      const state = stateFor(repo, index);
+      const positions = [18, 38, 63, 78];
+      const marks = positions.slice(0, Math.min(4, Math.max(1, Math.ceil(Math.log10(repo.prs + 1))))).map((top, markIndex) => {
+        const markState = markIndex === positions.length - 1 ? state : (markIndex % 2 ? "waiting" : "flowing");
+        return `<i class="vessel ${markState}" style="top:${top}%" data-help="A pull request marker at an illustrative workflow position"></i>`;
+      }).join("");
+      return `
+        <article class="berth" data-help="${escapeHtml(repo.name)} has ${repo.prs.toLocaleString()} open pull requests in the live GitHub data">
+          <div class="berth-head">
+            <a class="berth-name" href="${repo.url}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
+            <span class="berth-count">${repo.prs.toLocaleString()} open PRs</span>
+          </div>
+          <div class="lane" data-help="This berth compresses the repository's pull request queue into a glanceable lane">${marks}</div>
+          <span class="signal ${state}" data-help="${escapeHtml(repo.stateDetail || `${stateLabel[state]} is an illustrative operational state`)}">${stateLabel[state]}</span>
+        </article>`;
+    }
+
+    const metricDefinitions = [
+      { key: "blocked", label: "Blocked", color: "#cf222e" },
+      { key: "review", label: "Review", color: "#0969da" },
+      { key: "drafts", label: "Drafts", color: "#8250df" },
+      { key: "checks", label: "Checks", color: "#bc4c00" },
+      { key: "ready", label: "Ready", color: "#1a7f37" },
+      { key: "other", label: "Other", color: "#bf3989" }
+    ];
+
+    function metricSwitch(item, href, total, scope) {
+      const percentage = total ? item.value / total * 100 : 0;
+      return `<a class="metric-switch ${item.key}${item.value === 0 ? " zero" : ""}" href="${href}" target="_blank" rel="noreferrer" data-help="${item.value.toLocaleString()} ${item.label.toLowerCase()} PRs · ${percentage.toFixed(1)}% of ${scope}. Open the filtered queue on GitHub."><span>${item.label}</span><strong>${item.value.toLocaleString()}</strong></a>`;
+    }
+
+    function donutGradient(items, total) {
+      if (!total) return "";
+      let cursor = 0;
+      return `conic-gradient(${items.map(item => {
+        const start = cursor;
+        cursor += item.value / total * 100;
+        return `${item.color} ${start.toFixed(3)}% ${cursor.toFixed(3)}%`;
+      }).join(", ")})`;
+    }
+
+    function repositoryEntry(repo, index, maxPrs) {
+      const owner = repo.owner || currentOwner;
+      const key = repoKey(owner, repo.name);
+      const isPersonal = personalRepoKeys.has(key);
+      const state = stateFor(repo, index);
+      const updated = repo.pushedAt
+        ? `Updated ${new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(Math.round((new Date(repo.pushedAt) - Date.now()) / 86400000), "day")}`
+        : "Recently active";
+      const metrics = repo.metrics;
+      const telemetryItems = metrics
+        ? metricDefinitions.map(item => ({ ...item, value: metrics[item.key] ?? 0 }))
+        : [];
+      const telemetry = metrics
+        ? `<div class="metric-grid repo-telemetry" data-help="Six mutually exclusive counts cover this repository's full open pull request queue.">${telemetryItems.map(item => metricSwitch(item, queueUrl(owner, repo.name, item.key), repo.prs, `${owner}/${repo.name}'s open queue`)).join("")}</div>`
+        : `<div class="metric-unavailable" data-help="Full-queue telemetry is unavailable for this repository">Telemetry unavailable</div>`;
+      return `
+        <article class="repo-entry" data-help="${escapeHtml(owner)}/${escapeHtml(repo.name)} is shown with full-queue pull request telemetry">
+          <div class="repo-entry-title">
+            <a href="${repo.url}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
+            <p>${activeRepoScope === "personal" ? `${escapeHtml(owner)} · ` : ""}${escapeHtml(repo.description || "Repository activity and pull request flow")}</p>
+          </div>
+          ${telemetry}
+          <div class="repo-count" data-help="Live open pull request total">${repo.prs.toLocaleString()}<span>open PRs</span></div>
+          <span class="repo-state ${state}" data-help="${escapeHtml(repoStateDetail(repo, state))}">${stateLabel[state]}</span>
+          <time class="repo-updated" datetime="${repo.pushedAt || ""}" data-help="Most recent repository push activity">${updated}</time>
+          <button type="button" class="repo-personal-button" data-personal-owner="${escapeHtml(owner)}" data-personal-name="${escapeHtml(repo.name)}" aria-pressed="${isPersonal}" data-help="${isPersonal ? "Remove this repository from My repos" : "Add this repository to My repos"}">${isPersonal ? "Remove from My repos" : "Add to My repos"}</button>
+        </article>`;
+    }
+
+    function buildWatch() {
+      const realSignals = repos
+        .filter(repo => repo.signal)
+        .sort((a, b) => {
+          const priority = { blocked: 0, waiting: 1, merging: 2, flowing: 3, unknown: 4 };
+          return priority[stateFor(a, 0)] - priority[stateFor(b, 0)] || b.signal.ageDays - a.signal.ageDays;
+        })
+        .slice(0, 8)
+        .map(repo => ({
+          repo: activeRepoScope === "personal" ? `${repo.owner}/${repo.name}` : repo.name,
+          issue: `#${repo.signal.number} ${repo.signal.title}`,
+          action: `${repo.signal.reason} · ${repo.signal.action}`,
+          age: repo.signal.ageDays === 0 ? "active today" : `${repo.signal.ageDays}d since update`,
+          url: repo.signal.url,
+        }));
+      if (realSignals.length) return realSignals;
+      const candidates = [0, 2, 7, Math.max(0, repos.length - 1)];
+      const messages = [
+        ["Queue pressure exceeds the display threshold", "Assign a queue captain", "2h 18m"],
+        ["Review lane is the current bottleneck", "Add a human reviewer", "1h 42m"],
+        ["Checks are holding the merge lock", "Inspect failing checks", "58m"],
+        ["Oldest pull request is outside the expected tide window", "Rebase or close", "3h 06m"]
+      ];
+      return candidates.slice(0, Math.min(4, repos.length)).map((repoIndex, index) => ({
+        repo: repos[repoIndex]?.name ?? "No repository",
+        issue: messages[index][0],
+        action: messages[index][1],
+        age: messages[index][2]
+      }));
+    }
+
+    function renderDashboard() {
+      const watch = buildWatch();
+      const total = repos.reduce((sum, repo) => sum + repo.prs, 0);
+      const totals = ["blocked", "review", "drafts", "checks", "ready", "other"].reduce((result, key) => {
+        result[key] = repos.reduce((sum, repo) => sum + (repo.metrics?.[key] ?? 0), 0);
+        return result;
+      }, {});
+      const blockedRepos = repos.filter(repo => (repo.metrics?.blocked ?? 0) > 0).length;
+
+      const maxPrs = Math.max(1, ...repos.map(repo => repo.prs));
+      const collection = document.getElementById("repo-collection");
+      collection.className = `repo-collection ${overviewLayout}-view`;
+      collection.innerHTML = repos.length
+        ? repos.map((repo, index) => repositoryEntry(repo, index, maxPrs)).join("")
+        : activeRepoScope === "personal"
+          ? `<div class="repo-empty"><h2>Your personal harbor is empty</h2><p>Open Organization repos and add the repositories you want to monitor. My repos can include repositories from multiple organizations.</p></div>`
+          : `<div class="repo-empty"><h2>No repositories match</h2><p>Try a different repository name or description, or clear the search to restore the organization list.</p></div>`;
+      const personalOrganizationCount = new Set(repos.map(repo => repo.owner)).size;
+      document.getElementById("repo-summary").innerHTML = activeRepoScope === "personal"
+        ? `<strong>${repos.length} my repos</strong> · ${personalOrganizationCount} organization${personalOrganizationCount === 1 ? "" : "s"} · ${total.toLocaleString()} open pull requests`
+        : `<strong>${repos.length} of ${organizationCatalogTotal || repos.length} ${organizationSearchQuery ? "matches " : ""}loaded</strong> · ${currentOwner} · ${total.toLocaleString()} open pull requests`;
+      document.getElementById("health-number").textContent = totals.blocked.toLocaleString();
+      document.getElementById("health-title").textContent = "blocked PRs";
+      document.getElementById("health-detail").textContent = `Across ${blockedRepos} repositories · open queue`;
+      document.getElementById("ambient-blocked").textContent = totals.blocked.toLocaleString();
+      document.getElementById("ambient-blocked-detail").textContent = `Across ${blockedRepos} of ${repos.length} ${activeRepoScope === "personal" ? "personal" : "displayed"} repositories · open queue`;
+      const blockedQueueUrl = activeQueueUrl("blocked");
+      document.getElementById("blocked-queue-link").href = blockedQueueUrl;
+      document.getElementById("blocked-queue-link-top").href = blockedQueueUrl;
+      const blockedHelp = activeRepoScope === "personal"
+        ? "Open blocked pull requests across My repos on GitHub"
+        : `Open blocked pull requests across ${currentOwner} on GitHub`;
+      document.getElementById("blocked-queue-link").dataset.help = blockedHelp;
+      document.getElementById("blocked-queue-link-top").dataset.help = blockedHelp;
+
+      const fleetItems = metricDefinitions.map(item => ({ ...item, value: totals[item.key] ?? 0 }));
+      document.getElementById("fleet-treemap").innerHTML = total
+        ? `<div class="distribution-donut" role="img" aria-label="${fleetItems.map(item => `${item.label}: ${item.value.toLocaleString()}`).join(", ")}" style="--distribution-gradient:${donutGradient(fleetItems, total)}">
+            <div class="distribution-total"><strong>${total.toLocaleString()}</strong><span>open PRs</span></div>
+          </div>
+        <div class="distribution-legend">${fleetItems.map(item => metricSwitch(item, activeQueueUrl(item.key), total, activeRepoScope === "personal" ? "My repos" : "the displayed organization queue")).join("")}</div>`
+        : `<div class="distribution-empty">No open pull requests in the displayed repositories.</div>`;
+
+      document.getElementById("ambient-actions").innerHTML = watch.slice(0, 3).map((item, index) => `
+        <a class="ambient-action" href="${item.url || "#"}" ${item.url ? 'target="_blank" rel="noreferrer"' : ""} data-help="Open priority ${index + 1}: ${escapeHtml(item.action)}">
+          <span class="ambient-action-rank">${index + 1}</span>
+          <span class="ambient-action-copy"><strong>${escapeHtml(item.repo)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}</span></span>
+          <span class="ambient-action-open">${item.url ? "Open PR" : "Details"}</span>
+        </a>`).join("");
+
+      const flowStages = [
+        { key: "blocked", label: "Blocked" },
+        { key: "review", label: "Needs review" },
+        { key: "drafts", label: "Drafts" },
+        { key: "checks", label: "Checks running" },
+        { key: "ready", label: "Ready to merge" },
+        { key: "other", label: "Other open" }
+      ];
+      document.getElementById("flow-board").innerHTML = flowStages.map(stage => {
+        const ranked = repos
+          .filter(repo => (repo.metrics?.[stage.key] ?? 0) > 0)
+          .sort((a, b) => b.metrics[stage.key] - a.metrics[stage.key])
+          .slice(0, 5);
+        return `<section class="flow-stage">
+          <div class="flow-stage-head"><h2>${stage.label}</h2><strong>${totals[stage.key].toLocaleString()}</strong></div>
+          <p class="flow-stage-copy">${stageCopy[stage.key]}</p>
+          <div class="flow-repos">${ranked.map(repo => `<a class="flow-repo-link" href="${queueUrl(repo.owner || currentOwner, repo.name, stage.key)}" target="_blank" rel="noreferrer"><span>${activeRepoScope === "personal" ? `${escapeHtml(repo.owner)}/` : ""}${escapeHtml(repo.name)}</span><strong>${repo.metrics[stage.key].toLocaleString()}</strong></a>`).join("")}</div>
+          <a class="flow-stage-all" href="${activeQueueUrl(stage.key)}" target="_blank" rel="noreferrer">Open all ${stage.label.toLowerCase()} PRs</a>
+        </section>`;
+      }).join("");
+
+      document.getElementById("attention-count").textContent = `${watch.length} prioritized PR${watch.length === 1 ? "" : "s"}`;
+      document.getElementById("attention-list").innerHTML = watch.map((item, index) => `
+        <article class="attention-row" data-help="Ranked intervention ${index + 1} for ${escapeHtml(item.repo)}">
+          <div class="attention-rank">${index + 1}</div>
+          <div class="attention-repo"><strong>${escapeHtml(item.repo)}</strong><span>${item.url ? `<a href="${item.url}" target="_blank" rel="noreferrer">${escapeHtml(item.issue)}</a>` : escapeHtml(item.issue)}</span></div>
+          <div class="attention-action"><strong>${escapeHtml(item.action)}</strong><span>Recommended intervention</span></div>
+          <div class="attention-age">${item.age}</div>
+          ${item.url ? `<a class="attention-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
+        </article>`).join("");
+      updateRepoScopeUi();
+    }
+
+    function setLoading(loading, blank = false, owner = "") {
+      document.getElementById("loading-banner").classList.toggle("visible", loading);
+      document.getElementById("refresh-button").disabled = loading;
+      document.getElementById("org-select").disabled = loading;
+      document.querySelector(".app").classList.toggle("org-loading", loading && blank);
+      document.getElementById("loading-stage-title").textContent = owner
+        ? `Loading ${owner}`
+        : "Loading organization telemetry";
+    }
+
+    function showRepositorySearchPending(query) {
+      const clearButton = document.getElementById("repo-search-clear");
+      clearButton.hidden = !query;
+      document.getElementById("repo-search-status").textContent = query
+        ? `Searching all ${organizationRepositoryCount.toLocaleString()} organization repositories…`
+        : `Restoring ${currentOwner} repositories…`;
+      const collection = document.getElementById("repo-collection");
+      collection.setAttribute("aria-busy", "true");
+      collection.innerHTML = `
+        <div class="repo-search-pending" role="status" aria-live="polite">
+          <div>
+            <div class="spinner" aria-hidden="true"></div>
+            <strong>${query ? `Searching for “${escapeHtml(query)}”` : `Loading ${escapeHtml(currentOwner)} repositories`}</strong>
+            <span>Updating repository telemetry as you type…</span>
+          </div>
+        </div>`;
+      document.getElementById("load-more").classList.remove("visible");
+    }
+
+    function showError(message = "") {
+      const banner = document.getElementById("error-banner");
+      banner.textContent = message;
+      banner.classList.toggle("visible", Boolean(message));
+    }
+
+    function updateRepoScopeUi() {
+      document.querySelectorAll("[data-repo-scope]").forEach(button => {
+        button.setAttribute("aria-selected", String(button.dataset.repoScope === activeRepoScope));
+      });
+      document.getElementById("personal-repo-count").textContent = personalRepoKeys.size.toLocaleString();
+      document.getElementById("organization-repo-count").textContent = organizationRepos.length.toLocaleString();
+      document.getElementById("repo-scope-caption").textContent = activeRepoScope === "personal"
+        ? `${personalRepoKeys.size} saved repos across organizations`
+        : `${organizationRepos.length} loaded from ${currentOwner}${organizationRepositoryCount ? ` · ${organizationRepositoryCount.toLocaleString()} total repositories` : ""}`;
+      const search = document.getElementById("repo-search");
+      search.classList.toggle("visible", activeRepoScope === "organization");
+      const searchInput = document.getElementById("repo-search-input");
+      searchInput.placeholder = `Search ${currentOwner} repositories`;
+      document.getElementById("repo-search-clear").hidden = !organizationSearchQuery;
+      document.getElementById("repo-search-status").textContent = organizationSearchQuery
+        ? `${organizationCatalogTotal.toLocaleString()} matching repositories across ${organizationRepositoryCount.toLocaleString()} organization repositories`
+        : `Search all ${organizationRepositoryCount.toLocaleString()} organization repositories`;
+      const loadMore = document.getElementById("load-more");
+      loadMore.classList.toggle("visible", activeRepoScope === "organization" && (organizationHasMore || loadingMore));
+      const button = document.getElementById("load-more-button");
+      button.disabled = loadingMore;
+      button.textContent = loadingMore
+        ? "Loading repositories…"
+        : organizationSearchQuery
+          ? "Load 5 more matches"
+          : "Load 20 more repositories";
+      document.getElementById("load-more-status").textContent = loadingMore
+        ? `Loading the next repositories from ${currentOwner}.`
+        : organizationHasMore
+          ? organizationSearchQuery
+            ? `${organizationRepos.length} of ${organizationCatalogTotal} matching repositories loaded.`
+            : `${organizationRepos.length} of ${organizationCatalogTotal} available repositories loaded. Scroll to load more.`
+          : `All ${organizationRepos.length} available repositories are loaded.`;
+    }
+
+    function showPersonalData(data) {
+      personalRepos = data.repos;
+      personalRepoKeys = new Set(data.references.map(reference => repoKey(reference.owner, reference.name)));
+      activeRepoScope = "personal";
+      repos = personalRepos;
+      const organizationCount = new Set(repos.map(repo => repo.owner)).size;
+      document.getElementById("org-subline").textContent = `${repos.length} saved repositories across ${organizationCount} organization${organizationCount === 1 ? "" : "s"}`;
+      document.getElementById("refresh-status").textContent = `My repos refreshed ${new Date(data.refreshedAt).toLocaleTimeString()} · full-queue telemetry across the personal list`;
+      const source = document.getElementById("source-link");
+      source.href = "https://github.com/pulls";
+      source.textContent = "My repos on GitHub";
+      renderDashboard();
+    }
+
+    function showOrganizationData(data) {
+      activeRepoScope = "organization";
+      repos = organizationRepos;
+      document.getElementById("org-subline").textContent = `${data.owner.name} · repositories ranked by open pull requests`;
+      document.getElementById("refresh-status").textContent = `Organization data refreshed ${new Date(data.refreshedAt).toLocaleTimeString()} · ${organizationRepos.length} repositories loaded`;
+      const source = document.getElementById("source-link");
+      source.href = `https://github.com/orgs/${currentOwner}/repositories`;
+      source.textContent = `${currentOwner} organization`;
+      renderDashboard();
+    }
+
+    async function loadPersonalData({ blank = false } = {}) {
+      setLoading(true, blank, "My repos");
+      showError();
+      try {
+        const response = await fetch("/api/my-repos", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "My repos could not be loaded.");
+        showPersonalData(data);
+      } catch (error) {
+        console.error(error);
+        showError("My repos could not be refreshed. The last successfully loaded data remains visible.");
+      } finally {
+        setLoading(false);
+        scheduleRefresh();
+      }
+    }
+
+    async function loadOrganizationData({ reset = false, activate = true, blank = false } = {}) {
+      const select = document.getElementById("org-select");
+      const owner = select.value;
+      if (!owner) return;
+      const offset = reset ? 0 : organizationRepos.length;
+      const query = organizationSearchQuery;
+      const requestVersion = reset ? ++organizationRequestVersion : organizationRequestVersion;
+      let requestController;
+      if (reset) {
+        organizationRequestController?.abort();
+        requestController = new AbortController();
+        organizationRequestController = requestController;
+        setLoading(true, blank, owner);
+      } else {
+        if (loadingMore || !organizationHasMore) return;
+        loadingMore = true;
+        updateRepoScopeUi();
+      }
+      showError();
+      try {
+        const response = await fetch(`/api/repos?owner=${encodeURIComponent(owner)}&offset=${offset}&limit=20&query=${encodeURIComponent(query)}`, {
+          cache: "no-store",
+          signal: requestController?.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "GitHub data could not be loaded.");
+        if (document.getElementById("org-select").value !== owner || requestVersion !== organizationRequestVersion) return;
+        currentOwner = data.owner.login;
+        const existing = new Set((reset ? [] : organizationRepos).map(repo => repoKey(repo.owner, repo.name)));
+        organizationRepos = [
+          ...(reset ? [] : organizationRepos),
+          ...data.repos.filter(repo => !existing.has(repoKey(repo.owner, repo.name)))
+        ];
+        organizationHasMore = data.hasMore;
+        organizationCatalogTotal = data.catalogTotal;
+        organizationCatalogAvailableTotal = data.catalogAvailableTotal;
+        organizationRepositoryCount = data.organizationRepositoryCount;
+        if (activate) {
+          showOrganizationData(data);
+        } else {
+          updateRepoScopeUi();
+        }
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        console.error(error);
+        showError(`GitHub could not refresh ${owner}. Check your access and try Refresh. The last successfully loaded data remains visible.`);
+      } finally {
+        if (reset) {
+          if (requestVersion === organizationRequestVersion) {
+            organizationRequestController = undefined;
+            document.getElementById("repo-collection").removeAttribute("aria-busy");
+            setLoading(false);
+            scheduleRefresh();
+          }
+        } else {
+          loadingMore = false;
+          updateRepoScopeUi();
+        }
+      }
+    }
+
+    async function refreshData({ blank = false } = {}) {
+      if (activeRepoScope === "personal") {
+        await loadPersonalData({ blank });
+      } else {
+        await loadOrganizationData({ reset: true, activate: true, blank });
+      }
+    }
+
+    async function activateRepoScope(scope) {
+      if (scope === activeRepoScope) return;
+      if (scope === "personal") {
+        await loadPersonalData({ blank: true });
+        return;
+      }
+      if (organizationRepos.length) {
+        activeRepoScope = "organization";
+        repos = organizationRepos;
+        showOrganizationData({
+          owner: { login: currentOwner, name: currentOwner },
+          refreshedAt: new Date().toISOString(),
+        });
+        return;
+      }
+      await loadOrganizationData({ reset: true, activate: true, blank: true });
+    }
+
+    async function togglePersonalRepository(button) {
+      const owner = button.dataset.personalOwner;
+      const name = button.dataset.personalName;
+      const key = repoKey(owner, name);
+      const action = personalRepoKeys.has(key) ? "remove" : "add";
+      button.disabled = true;
+      try {
+        const response = await fetch("/api/my-repos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, owner, name }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "My repos could not be updated.");
+        personalRepoKeys = new Set(data.myRepos.map(reference => repoKey(reference.owner, reference.name)));
+        if (action === "remove") {
+          personalRepos = personalRepos.filter(repo => repoKey(repo.owner, repo.name) !== key);
+          if (activeRepoScope === "personal") repos = personalRepos;
+        }
+        renderDashboard();
+      } catch (error) {
+        console.error(error);
+        showError(`Could not ${action} ${owner}/${name} ${action === "add" ? "to" : "from"} My repos. Try again.`);
+        button.disabled = false;
+      }
+    }
+
+    async function loadOrganizations() {
+      setLoading(true);
+      showError();
+      try {
+        const response = await fetch("/api/orgs", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "GitHub organizations could not be loaded.");
+        const select = document.getElementById("org-select");
+        select.innerHTML = data.organizations.map(org => `<option value="${escapeHtml(org.login)}">${escapeHtml(org.login)}</option>`).join("");
+        const preferred = data.organizations.find(org => org.login === data.selectedOwner)
+          ?? data.organizations.find(org => org.login === "github")
+          ?? data.organizations[0];
+        if (!preferred) throw new Error("The signed-in GitHub account does not expose any organizations.");
+        select.value = preferred.login;
+        personalRepoKeys = new Set(data.personalRepos.map(reference => repoKey(reference.owner, reference.name)));
+        if (personalRepoKeys.size) {
+          await loadPersonalData({ blank: true });
+        } else {
+          await loadOrganizationData({ reset: true, activate: true, blank: true });
+        }
+      } catch (error) {
+        console.error(error);
+        showError("GitHub organizations could not be loaded. Showing the built-in github organization demo.");
+        document.getElementById("org-select").innerHTML = `<option value="github">github</option>`;
+        activeRepoScope = "organization";
+        renderDashboard();
+        setLoading(false);
+      }
+    }
+
+    function scheduleRefresh() {
+      clearTimeout(refreshTimer);
+      if (!document.getElementById("auto-refresh").checked) return;
+      const interval = Number(document.getElementById("refresh-interval").value);
+      refreshTimer = setTimeout(refreshData, interval);
+    }
+
+    function showView(view) {
+      document.querySelectorAll("[data-view]").forEach(item => item.setAttribute("aria-selected", String(item.dataset.view === view)));
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.toggle("active", screen.id === view));
+      document.getElementById(view)?.scrollIntoView({ block: "start" });
+    }
+
+    document.querySelectorAll("[data-view]").forEach(button => {
+      button.addEventListener("click", () => showView(button.dataset.view));
+    });
+
+    document.querySelectorAll("[data-layout]").forEach(button => {
+      button.addEventListener("click", () => {
+        overviewLayout = button.dataset.layout;
+        document.querySelectorAll("[data-layout]").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+        const collection = document.getElementById("repo-collection");
+        collection.className = `repo-collection ${overviewLayout}-view`;
+      });
+    });
+
+    document.querySelectorAll("[data-repo-scope]").forEach(button => {
+      button.addEventListener("click", () => activateRepoScope(button.dataset.repoScope));
+    });
+
+    document.getElementById("repo-collection").addEventListener("click", event => {
+      const button = event.target.closest("[data-personal-owner]");
+      if (button) togglePersonalRepository(button);
+    });
+
+    document.getElementById("org-select").addEventListener("change", async () => {
+      organizationRepos = [];
+      organizationHasMore = false;
+      organizationCatalogTotal = 0;
+      organizationCatalogAvailableTotal = 0;
+      organizationRepositoryCount = 0;
+      organizationSearchQuery = "";
+      document.getElementById("repo-search-input").value = "";
+      await loadOrganizationData({
+        reset: true,
+        activate: activeRepoScope === "organization",
+        blank: activeRepoScope === "organization",
+      });
+    });
+    document.getElementById("refresh-button").addEventListener("click", () => refreshData());
+    document.getElementById("load-more-button").addEventListener("click", () => loadOrganizationData());
+    document.getElementById("repo-search-input").addEventListener("input", event => {
+      clearTimeout(repositorySearchTimer);
+      organizationRequestController?.abort();
+      organizationRequestVersion += 1;
+      organizationSearchQuery = event.currentTarget.value.trim();
+      organizationHasMore = false;
+      loadingMore = false;
+      showRepositorySearchPending(organizationSearchQuery);
+      const requestedQuery = organizationSearchQuery;
+      repositorySearchTimer = setTimeout(async () => {
+        if (requestedQuery !== organizationSearchQuery) return;
+        organizationRepos = [];
+        await loadOrganizationData({ reset: true, activate: true });
+      }, 180);
+    });
+    document.getElementById("repo-search-clear").addEventListener("click", async () => {
+      clearTimeout(repositorySearchTimer);
+      organizationRequestController?.abort();
+      organizationRequestVersion += 1;
+      organizationSearchQuery = "";
+      organizationRepos = [];
+      organizationHasMore = false;
+      document.getElementById("repo-search-input").value = "";
+      showRepositorySearchPending("");
+      await loadOrganizationData({ reset: true, activate: true });
+      document.getElementById("repo-search-input").focus();
+    });
+    const loadMoreObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting) && activeRepoScope === "organization" && organizationHasMore && !organizationSearchQuery) {
+        loadOrganizationData();
+      }
+    }, { rootMargin: "240px 0px" });
+    loadMoreObserver.observe(document.getElementById("load-more"));
+
+    function saveRefreshPreferences() {
+      const enabled = document.getElementById("auto-refresh").checked;
+      const interval = document.getElementById("refresh-interval");
+      interval.disabled = !enabled;
+      localStorage.setItem("merge-harbor-auto-refresh", String(enabled));
+      localStorage.setItem("merge-harbor-refresh-interval", interval.value);
+      scheduleRefresh();
+    }
+    document.getElementById("auto-refresh").addEventListener("change", saveRefreshPreferences);
+    document.getElementById("refresh-interval").addEventListener("change", saveRefreshPreferences);
+
+    const tooltip = document.getElementById("tooltip");
+    let tooltipTarget;
+    function showTooltip(target) {
+      const text = target?.dataset?.help;
+      if (!text) return;
+      tooltipTarget = target;
+      tooltip.textContent = text;
+      const rect = target.getBoundingClientRect();
+      const left = Math.min(window.innerWidth - 316, Math.max(8, rect.left + rect.width / 2 - 150));
+      const top = rect.bottom + 8 < window.innerHeight - 80 ? rect.bottom + 8 : rect.top - 48;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${Math.max(8, top)}px`;
+      tooltip.classList.add("visible");
+    }
+    function hideTooltip(target) {
+      if (target && tooltipTarget !== target) return;
+      tooltip.classList.remove("visible");
+      tooltipTarget = undefined;
+    }
+    document.addEventListener("pointerover", event => showTooltip(event.target.closest("[data-help]")));
+    document.addEventListener("pointerout", event => hideTooltip(event.target.closest("[data-help]")));
+    document.addEventListener("focusin", event => showTooltip(event.target.closest("[data-help]")));
+    document.addEventListener("focusout", event => hideTooltip(event.target.closest("[data-help]")));
+
+    const savedAutoRefresh = localStorage.getItem("merge-harbor-auto-refresh");
+    const savedInterval = localStorage.getItem("merge-harbor-refresh-interval");
+    if (savedAutoRefresh !== null) document.getElementById("auto-refresh").checked = savedAutoRefresh === "true";
+    if (savedInterval && document.querySelector(`#refresh-interval option[value="${savedInterval}"]`)) {
+      document.getElementById("refresh-interval").value = savedInterval;
+    }
+    document.getElementById("refresh-interval").disabled = !document.getElementById("auto-refresh").checked;
+    renderDashboard();
+    loadOrganizations();
+  </script>
+</body>
+</html>
