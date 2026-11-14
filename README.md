@@ -80,6 +80,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Recover interrupted assessments after a bounded timeout so users can retry
 - Review completed findings inline with the repository that produced them
 - Scan executive summaries before expanding evidence, dependencies, and draft issue text
+- Recover completed findings from the compact mission index when their repository is outside the current owner, scope, or search
 
 ## Security and data
 

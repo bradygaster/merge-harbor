@@ -20,8 +20,13 @@ function assert(condition, message) {
     "No reviewable root causes reported.",
     "openAssessmentRepositoryKey",
     "openFindingIndexesByRepository",
+    "captureAssessmentFocus()",
+    "restoreAssessmentFocus(assessmentFocus)",
     "clearAssessmentDisclosureState()",
     'data-review-route="overview"',
+    'data-recover-mission="${escapeHtml(mission.id)}"',
+    "assessmentRecoveryEntry(recoveredMission)",
+    "Show repository findings",
     'focus({ preventScroll: true })',
 ].forEach((clause) => assert(html.includes(clause), `Assessment disclosure is missing: ${clause}`));
 
@@ -42,6 +47,18 @@ assert(
     html.includes('.repo-collection.card-view .repo-entry.assessment-open')
     && html.includes("grid-column: 1 / -1"),
     "Expanded assessment cards must span the collection width.",
+);
+assert(
+    html.includes('active.tagName === "SUMMARY"')
+    && html.includes('active.tagName === "PRE"')
+    && html.includes('active.matches(".assessment-panel h2")')
+    && html.includes('active.matches("[data-review-repository]")'),
+    "Dashboard rerenders must preserve meaningful assessment focus targets.",
+);
+assert(
+    html.includes('mission.status !== "completed" || mission.id === recoveredAssessmentMissionId')
+    && html.includes("This completed assessment is outside the current repository set."),
+    "Completed results outside the current collection must remain recoverable without a global findings wall.",
 );
 
 console.info("Repository assessment disclosure structure and interaction tests passed.");

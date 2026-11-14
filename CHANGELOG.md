@@ -14,6 +14,8 @@
 - Attached completed assessment findings directly to repository rows and cards with one-at-a-time progressive disclosure
 - Added severity-grouped finding summaries with proposed issue titles, root causes, confidence, and evidence/dependency counts
 - Routed Needs attention review actions back to the matching Overview repository and removed the disabled future issue-publication control
+- Preserved meaningful assessment focus across automatic dashboard rerenders
+- Kept completed results reachable through a compact repository-attached recovery shortcut when filtering hides their repository
 
 ## 0.2.0 - 2026-11-13
 

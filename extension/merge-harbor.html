@@ -975,6 +975,33 @@ FORM: Ambient command display with direct-action drill-down.
     .repo-collection.card-view .repo-entry.assessment-open {
       grid-column: 1 / -1;
     }
+    .repo-collection .assessment-recovery-entry {
+      min-height: 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+    }
+    .repo-collection.list-view .assessment-recovery-entry {
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+      grid-template-areas:
+        "title action"
+        "assessment assessment";
+    }
+    .repo-collection.card-view .assessment-recovery-entry {
+      grid-column: 1 / -1;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "title action"
+        "assessment assessment";
+    }
+    .repo-collection .assessment-recovery-entry .repo-entry-title p {
+      max-width: 70ch;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+    }
     .repo-entry-title {
       min-width: 0;
       grid-area: title;
@@ -1712,6 +1739,14 @@ FORM: Ambient command display with direct-action drill-down.
           "assessment assessment assessment";
         gap: 10px 16px;
       }
+      .repo-collection.list-view .assessment-recovery-entry,
+      .repo-collection.card-view .assessment-recovery-entry {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "title"
+          "action"
+          "assessment";
+      }
       .repo-collection.list-view .repo-telemetry {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -1917,7 +1952,7 @@ FORM: Ambient command display with direct-action drill-down.
             <div class="mission-center-head">
               <div>
                 <h2>Repository assessments</h2>
-                <p>Active and failed assessments appear here. Review completed findings from the repository that produced them. Assessment is read-only by default, processes relevant content through GitHub Copilot, and never writes to the remote repository.</p>
+                <p>Active and failed assessments appear here, along with completed results whose repository is outside the current set. Findings stay attached to their repository. Assessment is read-only by default, processes relevant content through GitHub Copilot, and never writes to the remote repository.</p>
               </div>
             </div>
             <div id="mission-list" class="mission-list"></div>
@@ -2040,6 +2075,7 @@ FORM: Ambient command display with direct-action drill-down.
     let refreshTimer;
     let overviewLayout = "list";
     let openAssessmentRepositoryKey;
+    let recoveredAssessmentMissionId;
     const missionsById = new Map();
     const latestMissionByRepository = new Map();
     const openFindingIndexesByRepository = new Map();
@@ -2145,7 +2181,12 @@ FORM: Ambient command display with direct-action drill-down.
 
     function renderMissionCenter() {
       const missions = [...latestMissionByRepository.values()]
-        .filter(mission => ["queued", "in_progress", "failed"].includes(mission.status))
+        .filter(mission => {
+          if (["queued", "in_progress", "failed"].includes(mission.status)) return true;
+          if (mission.status !== "completed" || mission.id === recoveredAssessmentMissionId) return false;
+          return ![...document.querySelectorAll(".repo-entry[data-repository-key]")]
+            .some(entry => entry.dataset.repositoryKey === mission.repository.key);
+        })
         .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
         .slice(0, 8);
       const center = document.getElementById("mission-center");
@@ -2155,7 +2196,9 @@ FORM: Ambient command display with direct-action drill-down.
           ? "Starting assessment…"
           : mission.status === "in_progress"
             ? "Assessment in progress"
-            : "Assessment failed";
+            : mission.status === "completed"
+              ? "Assessment complete"
+              : "Assessment failed";
         return `<article class="mission-card" data-mission-id="${escapeHtml(mission.id)}">
           <div class="mission-summary">
             <div class="mission-repository">
@@ -2170,12 +2213,12 @@ FORM: Ambient command display with direct-action drill-down.
           </div>
           ${mission.message && mission.message !== statusLabel ? `<p>${escapeHtml(mission.message)}</p>` : ""}
           ${mission.status === "failed" ? `<button type="button" class="mission-retry" data-assess-owner="${escapeHtml(mission.repository.owner)}" data-assess-name="${escapeHtml(mission.repository.name)}">Retry assessment</button>` : ""}
+          ${mission.status === "completed" ? `<button type="button" class="mission-retry" data-recover-mission="${escapeHtml(mission.id)}">Show repository findings</button>` : ""}
         </article>`;
       }).join("");
     }
 
     function renderMissionState() {
-      renderMissionCenter();
       renderDashboard();
     }
 
@@ -2292,8 +2335,49 @@ FORM: Ambient command display with direct-action drill-down.
       });
     }
 
+    function captureAssessmentFocus() {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement)) return undefined;
+      const entry = active.closest(".repo-entry[data-repository-key]");
+      const repositoryKey = entry?.dataset.repositoryKey;
+      if (!repositoryKey) return undefined;
+      if (active.matches("[data-review-repository]")) return { repositoryKey, kind: "trigger" };
+      if (active.matches(".assessment-panel h2")) return { repositoryKey, kind: "heading" };
+      const finding = active.closest(".assessment-finding");
+      if (!finding) return undefined;
+      const findingIndex = Number(finding.dataset.findingIndex);
+      if (active.tagName === "SUMMARY") return { repositoryKey, findingIndex, kind: "summary" };
+      if (active.tagName === "PRE") return { repositoryKey, findingIndex, kind: "draft" };
+      return undefined;
+    }
+
+    function restoreAssessmentFocus(snapshot) {
+      if (!snapshot) return;
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (active && active !== document.body && active.isConnected) return;
+        const entry = [...document.querySelectorAll(".repo-entry[data-repository-key]")]
+          .find(candidate => candidate.dataset.repositoryKey === snapshot.repositoryKey);
+        if (!entry) return;
+        let target;
+        if (snapshot.kind === "trigger") {
+          target = entry.querySelector("[data-review-repository]");
+        } else if (snapshot.kind === "heading") {
+          target = entry.querySelector(".assessment-panel h2");
+        } else {
+          const finding = [...entry.querySelectorAll(".assessment-finding")]
+            .find(candidate => Number(candidate.dataset.findingIndex) === snapshot.findingIndex);
+          target = snapshot.kind === "summary"
+            ? finding?.querySelector("summary")
+            : finding?.querySelector("pre");
+        }
+        target?.focus({ preventScroll: true });
+      });
+    }
+
     function clearAssessmentDisclosureState() {
       openAssessmentRepositoryKey = undefined;
+      recoveredAssessmentMissionId = undefined;
       openFindingIndexesByRepository.clear();
     }
 
@@ -2374,6 +2458,21 @@ FORM: Ambient command display with direct-action drill-down.
       }
     }
 
+    function recoverMissionReview(missionId) {
+      const mission = missionsById.get(missionId);
+      if (mission?.status !== "completed") return;
+      recoveredAssessmentMissionId = missionId;
+      openAssessmentRepositoryKey = mission.repository.key;
+      showView("overview");
+      renderDashboard();
+      const panel = document.getElementById(missionPanelId(missionId));
+      panel?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      panel?.querySelector("h2")?.focus({ preventScroll: true });
+    }
+
     function berth(repo, index) {
       const state = stateFor(repo, index);
       const positions = [18, 38, 63, 78];
@@ -2449,6 +2548,26 @@ FORM: Ambient command display with direct-action drill-down.
         </article>`;
     }
 
+    function assessmentRecoveryEntry(mission) {
+      if (mission?.status !== "completed") return "";
+      const owner = mission.repository.owner;
+      const name = mission.repository.name;
+      const key = mission.repository.key;
+      const assessmentOpen = openAssessmentRepositoryKey === key;
+      const repositoryUrl = mission.repository.url || `https://github.com/${owner}/${name}`;
+      return `<article class="repo-entry assessment-recovery-entry${assessmentOpen ? " assessment-open" : ""}" data-repository-key="${escapeHtml(key)}">
+        <div class="repo-entry-title">
+          <a href="${escapeHtml(repositoryUrl)}" target="_blank" rel="noreferrer">${escapeHtml(owner)}/${escapeHtml(name)}</a>
+          <p>This completed assessment is outside the current repository set. Review it here without changing your owner, scope, or search.</p>
+        </div>
+        <div class="repo-actions">
+          ${assessmentButton(owner, name)}
+          <button type="button" class="repo-action-button" data-dismiss-assessment-recovery>Dismiss result shortcut</button>
+        </div>
+        ${renderAssessmentPanel(owner, name, mission)}
+      </article>`;
+    }
+
     function buildWatch() {
       const realSignals = repos
         .filter(repo => repo.signal)
@@ -2485,6 +2604,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function renderDashboard() {
+      const assessmentFocus = captureAssessmentFocus();
       captureFindingState();
       const watch = buildWatch();
       const total = repos.reduce((sum, repo) => sum + repo.prs, 0);
@@ -2496,8 +2616,14 @@ FORM: Ambient command display with direct-action drill-down.
 
       const collection = document.getElementById("repo-collection");
       collection.className = `repo-collection ${overviewLayout}-view`;
-      collection.innerHTML = repos.length
-        ? repos.map(repositoryEntry).join("")
+      const recoveredMission = missionsById.get(recoveredAssessmentMissionId);
+      const recoveredRepositoryVisible = recoveredMission
+        ? repos.some(repo => repoKey(repo.owner || currentOwner, repo.name) === recoveredMission.repository.key)
+        : false;
+      if (recoveredRepositoryVisible) recoveredAssessmentMissionId = undefined;
+      const recoveryEntry = recoveredRepositoryVisible ? "" : assessmentRecoveryEntry(recoveredMission);
+      collection.innerHTML = (recoveryEntry || repos.length)
+        ? `${recoveryEntry}${repos.map(repositoryEntry).join("")}`
         : activeRepoScope === "personal"
           ? `<div class="repo-empty"><h2>Your personal harbor is empty</h2><p>Open the selected owner repository list and add the repositories you want to monitor. My repos can include repositories from multiple owners.</p></div>`
           : `<div class="repo-empty"><h2>No repositories match</h2><p>Try a different repository name or description, or clear the search to restore the selected owner list.</p></div>`;
@@ -2567,6 +2693,8 @@ FORM: Ambient command display with direct-action drill-down.
           ${item.name ? assessmentButton(item.owner, item.name, "attention-assess", true) : ""}
         </article>`).join("");
       updateRepoScopeUi();
+      restoreAssessmentFocus(assessmentFocus);
+      renderMissionCenter();
     }
 
     function setLoading(loading, blank = false, owner = "") {
@@ -2596,6 +2724,7 @@ FORM: Ambient command display with direct-action drill-down.
           </div>
         </div>`;
       document.getElementById("load-more").classList.remove("visible");
+      renderMissionCenter();
     }
 
     function showError(message = "") {
@@ -2867,13 +2996,27 @@ FORM: Ambient command display with direct-action drill-down.
 
     document.getElementById("repo-collection").addEventListener("click", event => {
       const button = event.target.closest("[data-personal-owner]");
-      if (button) togglePersonalRepository(button);
+      if (button) {
+        togglePersonalRepository(button);
+        return;
+      }
+      if (event.target.closest("[data-dismiss-assessment-recovery]")) {
+        const mission = missionsById.get(recoveredAssessmentMissionId);
+        if (mission?.repository.key === openAssessmentRepositoryKey) openAssessmentRepositoryKey = undefined;
+        recoveredAssessmentMissionId = undefined;
+        renderDashboard();
+      }
     });
 
     document.addEventListener("click", event => {
       const assessButton = event.target.closest("[data-assess-owner]");
       if (assessButton) {
         startAssessment(assessButton);
+        return;
+      }
+      const recoveryButton = event.target.closest("[data-recover-mission]");
+      if (recoveryButton) {
+        recoverMissionReview(recoveryButton.dataset.recoverMission);
         return;
       }
       const reviewButton = event.target.closest("[data-review-mission]");
