@@ -1258,6 +1258,70 @@ FORM: Ambient command display with direct-action drill-down.
       white-space: pre-wrap;
       font: var(--text-code-block, 12px)/1.5 var(--font-mono, Consolas, monospace);
     }
+    .issue-publication {
+      display: grid;
+      justify-items: start;
+      gap: 8px;
+      max-width: 75ch;
+      margin-top: 10px;
+    }
+    .issue-publication button,
+    .issue-publication-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 7px 13px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      line-height: 1.2;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .issue-publication button:hover,
+    .issue-publication-link:hover {
+      background: var(--background-color-button-default-hover, var(--cp-surface-soft));
+    }
+    .issue-publication button.primary {
+      border-color: var(--border-color-accent-emphasis, var(--cp-accent));
+      background: var(--background-color-accent-emphasis, var(--cp-accent));
+      color: var(--text-color-on-emphasis, var(--cp-accent-fg));
+    }
+    .issue-publication button.primary:hover {
+      background: var(--background-color-accent-emphasis, var(--cp-accent-hover));
+    }
+    .issue-publication button:disabled {
+      border-color: var(--border-color-default, var(--cp-border));
+      background: var(--background-color-disabled, var(--cp-surface-soft));
+      color: var(--text-color-disabled, var(--cp-text-muted));
+      cursor: wait;
+    }
+    .issue-confirmation {
+      display: grid;
+      gap: 7px;
+      width: min(100%, 640px);
+      padding: 12px;
+      border: 1px solid var(--border-color-accent-muted, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-accent-muted, var(--cp-accent-soft));
+    }
+    .issue-confirmation p,
+    .issue-confirmation span {
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .issue-confirmation strong { overflow-wrap: anywhere; }
+    .issue-confirmation-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .issue-publication-error {
+      margin: 0;
+      color: var(--text-color-danger, var(--cp-danger)) !important;
+    }
     .assessment-empty {
       margin-top: 16px;
       padding: 18px;
@@ -2079,6 +2143,7 @@ FORM: Ambient command display with direct-action drill-down.
     const missionsById = new Map();
     const latestMissionByRepository = new Map();
     const openFindingIndexesByRepository = new Map();
+    const issueCreationStateByFinding = new Map();
     const states = ["waiting","flowing","blocked","flowing","merging","flowing","waiting","blocked","flowing","merging","flowing","waiting","merging","flowing","blocked","flowing","waiting","merging","flowing","blocked"];
     const stateLabel = { flowing:"clear", waiting:"waiting", blocked:"blocked", merging:"ready", unknown:"unknown" };
 
@@ -2291,8 +2356,44 @@ FORM: Ambient command display with direct-action drill-down.
           <h4>Proposed issue</h4>
           <strong>${escapeHtml(finding.draftIssue.title)}</strong>
           <pre tabindex="0">${escapeHtml(finding.draftIssue.body)}</pre>
+          ${renderIssuePublication(mission, finding, originalIndex)}
         </div>
       </details>`;
+    }
+
+    function issuePublicationKey(mission, finding, findingIndex) {
+      return `${mission.id}:${finding.identity || findingIndex}`;
+    }
+
+    function renderIssuePublication(mission, finding, findingIndex) {
+      const key = issuePublicationKey(mission, finding, findingIndex);
+      const attributes = `data-issue-publication="${escapeHtml(key)}" data-mission-id="${escapeHtml(mission.id)}" data-finding-index="${findingIndex}" data-finding-identity="${escapeHtml(finding.identity)}"`;
+      if (finding.publication?.number && finding.publication?.url) {
+        issueCreationStateByFinding.delete(key);
+        return `<div class="issue-publication" ${attributes}>
+          <a class="issue-publication-link" data-issue-action="open" href="${escapeHtml(finding.publication.url)}" target="_blank" rel="noreferrer">Open issue #${finding.publication.number}</a>
+        </div>`;
+      }
+      const state = issueCreationStateByFinding.get(key) ?? { mode: "idle" };
+      if (state.mode === "idle") {
+        return `<div class="issue-publication" ${attributes}>
+          <button type="button" data-issue-action="prepare">Create issue</button>
+        </div>`;
+      }
+      const loading = state.mode === "loading";
+      const error = state.mode === "error" ? state.error : "";
+      return `<div class="issue-publication" ${attributes}${loading ? ' aria-busy="true"' : ""}>
+        <div class="issue-confirmation">
+          <strong>Create in ${escapeHtml(mission.repository.owner)}/${escapeHtml(mission.repository.name)}?</strong>
+          <span>Issue title: ${escapeHtml(finding.draftIssue.title)}</span>
+          <p>This is an explicit remote write. Merge Harbor will create one GitHub issue from this stored assessment draft and make no other repository changes.</p>
+          ${error ? `<p class="issue-publication-error" role="alert">${escapeHtml(error)}</p>` : ""}
+          <div class="issue-confirmation-actions">
+            <button type="button" class="primary" data-issue-action="create"${loading ? " disabled" : ""}>${loading ? "Creating issue…" : error ? "Retry on GitHub" : "Create on GitHub"}</button>
+            <button type="button" data-issue-action="cancel"${loading ? " disabled" : ""}>Cancel</button>
+          </div>
+        </div>
+      </div>`;
     }
 
     function renderAssessmentPanel(owner, name, mission) {
@@ -2307,7 +2408,7 @@ FORM: Ambient command display with direct-action drill-down.
           <div class="assessment-panel-head">
             <div>
               <h2 id="${missionPanelId(mission.id)}-heading" tabindex="-1">Assessment findings</h2>
-              <p>Review evidence-backed root causes before deciding whether to act. Findings remain local drafts and nothing is published from this view.</p>
+              <p>Review evidence-backed root causes before deciding whether to act. Assessment stays read-only; publishing a draft requires a separate explicit confirmation.</p>
             </div>
             <div class="assessment-meta">
               <span><strong>${findings.length}</strong> finding${findings.length === 1 ? "" : "s"}</span>
@@ -2346,6 +2447,8 @@ FORM: Ambient command display with direct-action drill-down.
       const finding = active.closest(".assessment-finding");
       if (!finding) return undefined;
       const findingIndex = Number(finding.dataset.findingIndex);
+      const issueAction = active.closest("[data-issue-action]")?.dataset.issueAction;
+      if (issueAction) return { repositoryKey, findingIndex, kind: "issue-action", issueAction };
       if (active.tagName === "SUMMARY") return { repositoryKey, findingIndex, kind: "summary" };
       if (active.tagName === "PRE") return { repositoryKey, findingIndex, kind: "draft" };
       return undefined;
@@ -2369,7 +2472,9 @@ FORM: Ambient command display with direct-action drill-down.
             .find(candidate => Number(candidate.dataset.findingIndex) === snapshot.findingIndex);
           target = snapshot.kind === "summary"
             ? finding?.querySelector("summary")
-            : finding?.querySelector("pre");
+            : snapshot.kind === "issue-action"
+              ? finding?.querySelector(`[data-issue-action="${snapshot.issueAction}"]`)
+              : finding?.querySelector("pre");
         }
         target?.focus({ preventScroll: true });
       });
@@ -2471,6 +2576,69 @@ FORM: Ambient command display with direct-action drill-down.
         block: "start",
       });
       panel?.querySelector("h2")?.focus({ preventScroll: true });
+    }
+
+    function findIssuePublicationElement(key) {
+      return [...document.querySelectorAll("[data-issue-publication]")]
+        .find(candidate => candidate.dataset.issuePublication === key);
+    }
+
+    function refreshIssuePublication(key, focusAction) {
+      const current = findIssuePublicationElement(key);
+      if (!current) return;
+      const mission = missionsById.get(current.dataset.missionId);
+      const findingIndex = Number(current.dataset.findingIndex);
+      const finding = mission?.findings?.[findingIndex];
+      if (!mission || !finding) return;
+      const template = document.createElement("template");
+      template.innerHTML = renderIssuePublication(mission, finding, findingIndex).trim();
+      const replacement = template.content.firstElementChild;
+      current.replaceWith(replacement);
+      replacement.querySelector(`[data-issue-action="${focusAction}"]`)?.focus({ preventScroll: true });
+    }
+
+    async function handleIssuePublicationAction(button) {
+      const action = button.dataset.issueAction;
+      if (action === "open") return;
+      const container = button.closest("[data-issue-publication]");
+      const key = container.dataset.issuePublication;
+      if (action === "prepare") {
+        issueCreationStateByFinding.set(key, { mode: "confirming" });
+        refreshIssuePublication(key, "create");
+        return;
+      }
+      if (action === "cancel") {
+        issueCreationStateByFinding.delete(key);
+        refreshIssuePublication(key, "prepare");
+        return;
+      }
+      if (action !== "create") return;
+
+      issueCreationStateByFinding.set(key, { mode: "loading" });
+      refreshIssuePublication(key);
+      try {
+        const response = await fetch("/api/assessment-issues", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            missionId: container.dataset.missionId,
+            findingIndex: Number(container.dataset.findingIndex),
+            findingIdentity: container.dataset.findingIdentity,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "GitHub did not create the issue.");
+        ingestMission(data.mission);
+        issueCreationStateByFinding.delete(key);
+        refreshIssuePublication(key, "open");
+      } catch (error) {
+        console.error(error);
+        issueCreationStateByFinding.set(key, {
+          mode: "error",
+          error: error.message || "GitHub did not create the issue. Try again.",
+        });
+        refreshIssuePublication(key, "create");
+      }
     }
 
     function berth(repo, index) {
@@ -3009,6 +3177,11 @@ FORM: Ambient command display with direct-action drill-down.
     });
 
     document.addEventListener("click", event => {
+      const issueButton = event.target.closest("[data-issue-action]");
+      if (issueButton) {
+        handleIssuePublicationAction(issueButton);
+        return;
+      }
       const assessButton = event.target.closest("[data-assess-owner]");
       if (assessButton) {
         startAssessment(assessButton);

@@ -140,6 +140,27 @@ if (!extensionSource.includes('name: "merge_harbor_report_repository_assessment"
     throw new Error("Repository assessments must expose the globally unique callback tool.");
 }
 [
+    'requestUrl.pathname === "/api/assessment-issues"',
+    "createAssessmentIssueOnce(body)",
+    '"--raw-field", `title=${finding.draftIssue.title}`',
+    '"--raw-field", `body=${finding.draftIssue.body}',
+    "issueCreationPromises",
+].forEach((clause) => {
+    if (!extensionSource.includes(clause)) {
+        throw new Error(`Explicit assessment issue publication is missing its safe endpoint contract: ${clause}`);
+    }
+});
+[
+    'mission.status !== "completed"',
+    "assessmentFindingIdentity(mission, findingIndex)",
+    "assessmentIssueMarker(mission, findingIndex)",
+    "storedFinding.publication",
+].forEach((clause) => {
+    if (!assessmentCoreSource.includes(clause)) {
+        throw new Error(`Assessment issue publication is missing durable validation: ${clause}`);
+    }
+});
+[
     "isolated local clone or disposable worktree",
     "Never use or modify the user's existing checkout",
     "Disable pushing",
@@ -190,11 +211,14 @@ if (html.includes(".repo-state") || html.includes('class="repo-state')) {
     ['class="finding assessment-finding"', "Assessment findings must use nested details elements."],
     ["No reviewable root causes reported.", "Zero-finding assessments must provide the required empty state."],
     ["Hide findings", "Expanded repository assessments must expose the required action label."],
+    ['data-issue-action="prepare">Create issue</button>', "Stored findings must expose explicit issue publication."],
+    ["Create on GitHub", "Issue publication must require a second confirmation."],
+    ["This is an explicit remote write.", "Issue publication must explain the remote write boundary."],
 ].forEach(([clause, message]) => {
     if (!html.includes(clause)) throw new Error(message);
 });
 if (html.includes("Create selected issues")) {
-    throw new Error("The disabled future issue-publication control must not be rendered.");
+    throw new Error("Bulk issue publication must not be rendered.");
 }
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (!scripts.length) {

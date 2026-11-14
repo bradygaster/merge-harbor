@@ -6,8 +6,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createCanvas, joinSession } from "@github/copilot-sdk/extension";
 import {
+    assessmentFindingIdentity,
     beginAssessment,
     buildAssessmentPrompt,
+    createAssessmentIssue,
     createMissionStore,
     assessmentInterruptionTimeoutMs,
     recoverInterruptedMissions,
@@ -27,6 +29,7 @@ const catalogCacheTtlMs = 5 * 60 * 1000;
 const repositoryTelemetryCache = new Map();
 const repositoryTelemetryCacheTtlMs = 5 * 60 * 1000;
 const missionTimeouts = new Map();
+const issueCreationPromises = new Map();
 
 function readPreferences() {
     let preferences;
@@ -71,6 +74,56 @@ async function ghApi(args) {
         windowsHide: true,
     });
     return JSON.parse(stdout);
+}
+
+function ghFailureMessage(error) {
+    const message = typeof error?.stderr === "string" ? error.stderr.trim() : "";
+    return message ? message.slice(0, 1000) : "The authenticated GitHub CLI request failed.";
+}
+
+async function findExistingAssessmentIssue({ mission, marker }) {
+    try {
+        const query = `repo:${mission.repository.owner}/${mission.repository.name} is:issue in:body ${marker}`;
+        const result = await ghApi([
+            "--method", "GET",
+            "search/issues",
+            "--raw-field", `q=${query}`,
+            "--raw-field", "per_page=10",
+        ]);
+        const issue = result.items?.find((candidate) => candidate.body?.includes(`<!-- ${marker} -->`));
+        return issue ? { number: issue.number, url: issue.html_url } : undefined;
+    } catch (error) {
+        throw new Error(ghFailureMessage(error));
+    }
+}
+
+async function publishAssessmentIssue({ mission, finding, marker }) {
+    try {
+        const repositoryPath = `repos/${encodeURIComponent(mission.repository.owner)}/${encodeURIComponent(mission.repository.name)}/issues`;
+        const issue = await ghApi([
+            "--method", "POST",
+            repositoryPath,
+            "--raw-field", `title=${finding.draftIssue.title}`,
+            "--raw-field", `body=${finding.draftIssue.body}\n\n<!-- ${marker} -->`,
+        ]);
+        return { number: issue.number, url: issue.html_url };
+    } catch (error) {
+        throw new Error(ghFailureMessage(error));
+    }
+}
+
+function createAssessmentIssueOnce(body) {
+    const key = `${body?.missionId ?? ""}:${body?.findingIndex ?? ""}:${body?.findingIdentity ?? ""}`;
+    const pending = issueCreationPromises.get(key);
+    if (pending) return pending;
+    const promise = createAssessmentIssue({
+        body,
+        store: missionStore,
+        findExistingIssue: findExistingAssessmentIssue,
+        createIssue: publishAssessmentIssue,
+    }).finally(() => issueCreationPromises.delete(key));
+    issueCreationPromises.set(key, promise);
+    return promise;
 }
 
 async function listOrganizations() {
@@ -601,7 +654,10 @@ function publicMission(mission) {
         phase: mission.phase,
         message: mission.message,
         repository: mission.repository,
-        findings: mission.findings ?? [],
+        findings: (mission.findings ?? []).map((finding, findingIndex) => ({
+            ...finding,
+            identity: assessmentFindingIdentity(mission, findingIndex),
+        })),
         createdAt: mission.createdAt,
         updatedAt: mission.updatedAt,
     };
@@ -781,6 +837,23 @@ async function startServer(instanceId, defaultView) {
                         if (!result.body.duplicate) {
                             setTimeout(() => dispatchAssessment(result.body.mission), 0);
                         }
+                    }
+                })
+                .catch((error) => writeJson(res, 400, { error: error.message }));
+            return;
+        }
+
+        if (requestUrl.pathname === "/api/assessment-issues" && req.method === "POST") {
+            readJsonBody(req)
+                .then((body) => createAssessmentIssueOnce(body))
+                .then((result) => {
+                    const mission = result.body.mission;
+                    writeJson(res, result.statusCode, {
+                        ...result.body,
+                        mission: publicMission(mission),
+                    });
+                    if (mission && result.statusCode < 300) {
+                        broadcastAll("mission", publicMission(mission));
                     }
                 })
                 .catch((error) => writeJson(res, 400, { error: error.message }));

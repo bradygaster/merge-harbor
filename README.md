@@ -2,7 +2,7 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
-Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. The clone or worktree, mission state, and any approved experimental file changes stay on the user's machine, but assessment is not offline: relevant repository content is processed through the GitHub Copilot service, and GitHub metadata is read using the user's authenticated `gh` access. Assessments default to static, read-only inspection and never run repository tests, builds, scripts, hooks, package installs, package-manager commands, or executable repository code. A clone or worktree is filesystem separation, not execution isolation. Any execution requires separate explicit user approval and a real isolated sandbox with secrets removed and outbound network access restricted. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
+Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. The clone or worktree, mission state, and any approved experimental file changes stay on the user's machine, but assessment is not offline: relevant repository content is processed through the GitHub Copilot service, and GitHub metadata is read using the user's authenticated `gh` access. Assessments default to static, read-only inspection and never run repository tests, builds, scripts, hooks, package installs, package-manager commands, or executable repository code. A clone or worktree is filesystem separation, not execution isolation. Any execution requires separate explicit user approval and a real isolated sandbox with secrets removed and outbound network access restricted. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout. After an assessment completes, a user may separately publish one stored draft as a plain GitHub issue through an inline two-step confirmation; Merge Harbor derives the repository, title, and body from durable mission state and performs no other remote mutation.
 
 ## Install from the marketplace
 
@@ -80,6 +80,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Recover interrupted assessments after a bounded timeout so users can retry
 - Review completed findings inline with the repository that produced them
 - Scan executive summaries before expanding evidence, dependencies, and draft issue text
+- Explicitly confirm publication of one stored draft as a plain GitHub issue, then open the durable result
 - Recover completed findings from the compact mission index when their repository is outside the current owner, scope, or search
 
 ## Security and data
@@ -91,7 +92,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Assessment clones or worktrees, mission state, and approved experimental file changes remain local, but relevant repository content is processed through the GitHub Copilot service; assessments are not offline.
 - Assessment missions prohibit remote writes and default to static inspection in disposable local clones or worktrees coordinated by the current Copilot session.
 - Repository code execution is blocked unless the user separately approves it and a secrets-free, network-restricted sandbox is available.
-- Findings remain local drafts. Issue publication is not included and requires a separate explicit user-approved workflow.
+- Findings remain local drafts unless the user opens one finding, selects **Create issue**, and confirms **Create on GitHub**. This separate post-assessment action validates the completed mission and stored finding, reconciles a deterministic hidden marker to avoid duplicates, and creates only the issue itself—no labels, assignees, projects, or comments.
 
 ## Compatibility
 

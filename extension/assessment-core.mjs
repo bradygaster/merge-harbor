@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -112,6 +112,143 @@ export function validateFindings(value) {
         if (!title || !body) throw new Error(`Finding ${index + 1} requires a draft issue title and body.`);
         return { rootCause, severity, confidence, evidence, dependencies, draftIssue: { title, body } };
     }).slice(0, 50);
+}
+
+export function assessmentFindingIdentity(mission, findingIndex) {
+    const finding = mission?.findings?.[findingIndex];
+    if (!finding) return "";
+    const digest = createHash("sha256")
+        .update([
+            mission.id,
+            String(findingIndex),
+            finding.rootCause,
+            finding.draftIssue?.title,
+            finding.draftIssue?.body,
+        ].join("\0"))
+        .digest("hex")
+        .slice(0, 20);
+    return `finding-${findingIndex}-${digest}`;
+}
+
+export function assessmentIssueMarker(mission, findingIndex) {
+    const identity = assessmentFindingIdentity(mission, findingIndex);
+    if (!identity) return "";
+    const digest = createHash("sha256")
+        .update(`${mission.id}\0${identity}`)
+        .digest("hex")
+        .slice(0, 32);
+    return `merge-harbor-assessment-${digest}`;
+}
+
+function normalizePublishedIssue(issue) {
+    const number = Number(issue?.number);
+    const url = cleanString(issue?.url ?? issue?.html_url, 2000);
+    if (!Number.isInteger(number) || number < 1 || !/^https:\/\/[^/]+\/.+/i.test(url)) {
+        throw new Error("GitHub returned an invalid issue result.");
+    }
+    return { number, url };
+}
+
+export async function createAssessmentIssue({
+    body,
+    store,
+    findExistingIssue,
+    createIssue,
+    now = () => new Date().toISOString(),
+}) {
+    if (!isRecord(body)) {
+        return { statusCode: 400, body: { error: "Issue creation requires a mission and finding reference." } };
+    }
+    const missionId = cleanString(body.missionId, 120);
+    const findingIndex = body.findingIndex;
+    const findingIdentity = cleanString(body.findingIdentity, 120);
+    if (!missionId || !Number.isInteger(findingIndex) || findingIndex < 0 || !findingIdentity) {
+        return { statusCode: 400, body: { error: "The mission ID, finding index, and finding identity are required." } };
+    }
+    const mission = store.read(missionId);
+    if (!mission) {
+        return { statusCode: 404, body: { error: "The assessment mission was not found." } };
+    }
+    if (mission.status !== "completed") {
+        return { statusCode: 409, body: { error: "Issues can be created only from a completed assessment." } };
+    }
+    let repository;
+    try {
+        repository = normalizeRepositoryIdentity(mission.repository);
+    } catch {
+        return { statusCode: 422, body: { error: "The assessment target repository is invalid." } };
+    }
+    if (repository.key !== mission.repository.key) {
+        return { statusCode: 422, body: { error: "The assessment target repository does not match its stored identity." } };
+    }
+    let validatedFindings;
+    try {
+        validatedFindings = validateFindings(mission.findings);
+    } catch {
+        return { statusCode: 422, body: { error: "The completed assessment contains invalid finding data." } };
+    }
+    const storedFinding = mission.findings?.[findingIndex];
+    const finding = validatedFindings[findingIndex];
+    const expectedIdentity = assessmentFindingIdentity(mission, findingIndex);
+    if (!finding || findingIdentity !== expectedIdentity) {
+        return { statusCode: 400, body: { error: "The assessment finding reference is invalid or stale." } };
+    }
+    if (storedFinding.publication) {
+        try {
+            const issue = normalizePublishedIssue(storedFinding.publication);
+            return { statusCode: 200, body: { issue, mission, duplicate: true } };
+        } catch {
+            return { statusCode: 500, body: { error: "The stored issue publication record is invalid." } };
+        }
+    }
+
+    const marker = assessmentIssueMarker(mission, findingIndex);
+    let issue;
+    try {
+        issue = await findExistingIssue({ mission, finding, findingIndex, marker });
+    } catch (error) {
+        return {
+            statusCode: 502,
+            body: { error: `GitHub could not check for an existing issue. ${error.message}` },
+        };
+    }
+    let reconciled = Boolean(issue);
+    if (!issue) {
+        try {
+            issue = await createIssue({ mission, finding, findingIndex, marker });
+        } catch (error) {
+            return {
+                statusCode: 502,
+                body: { error: `GitHub could not create the issue. ${error.message}` },
+            };
+        }
+        reconciled = false;
+    }
+
+    let normalizedIssue;
+    try {
+        normalizedIssue = normalizePublishedIssue(issue);
+    } catch (error) {
+        return { statusCode: 502, body: { error: error.message } };
+    }
+    const findings = mission.findings.map((candidate, index) => index === findingIndex
+        ? {
+            ...candidate,
+            publication: {
+                ...normalizedIssue,
+                createdAt: now(),
+            },
+        }
+        : candidate);
+    const updatedMission = store.update(mission.id, { findings });
+    return {
+        statusCode: reconciled ? 200 : 201,
+        body: {
+            issue: normalizedIssue,
+            mission: updatedMission,
+            duplicate: reconciled,
+        },
+    };
 }
 
 export function createMissionStore(directory, {

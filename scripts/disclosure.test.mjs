@@ -28,9 +28,22 @@ function assert(condition, message) {
     "assessmentRecoveryEntry(recoveredMission)",
     "Show repository findings",
     'focus({ preventScroll: true })',
+    'data-issue-action="prepare">Create issue</button>',
+    'data-issue-action="create"',
+    "Create on GitHub",
+    "Creating issue…",
+    "Retry on GitHub",
+    'data-issue-action="cancel"',
+    "Open issue #${finding.publication.number}",
+    'fetch("/api/assessment-issues"',
+    "issueCreationStateByFinding",
+    "This is an explicit remote write.",
 ].forEach((clause) => assert(html.includes(clause), `Assessment disclosure is missing: ${clause}`));
 
-assert(!html.includes("Create selected issues"), "Future issue publication controls must not be rendered.");
+assert(!html.includes("Create selected issues"), "Bulk issue publication controls must not be rendered.");
+const findingSummaryEnd = html.indexOf("</summary>", html.indexOf("<details class=\"finding assessment-finding\""));
+const issueActionStart = html.indexOf("${renderIssuePublication", html.indexOf("<details class=\"finding assessment-finding\""));
+assert(issueActionStart > findingSummaryEnd, "Issue publication controls must remain outside the finding summary.");
 assert(
     html.indexOf("<h4>Root cause</h4>") < html.indexOf("<h4>Evidence</h4>")
     && html.indexOf("<h4>Evidence</h4>") < html.indexOf("<h4>Dependencies</h4>")
@@ -54,6 +67,12 @@ assert(
     && html.includes('active.matches(".assessment-panel h2")')
     && html.includes('active.matches("[data-review-repository]")'),
     "Dashboard rerenders must preserve meaningful assessment focus targets.",
+);
+assert(
+    html.includes('active.closest("[data-issue-action]")')
+    && html.includes('kind: "issue-action"')
+    && html.includes('finding?.querySelector(`[data-issue-action="${snapshot.issueAction}"]`)'),
+    "Issue publication focus must survive ordinary dashboard rerenders.",
 );
 assert(
     html.includes('mission.status !== "completed" || mission.id === recoveredAssessmentMissionId')

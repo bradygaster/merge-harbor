@@ -7,13 +7,14 @@
 - Added a globally unique callback tool for Copilot-coordinated specialist assessments
 - Added dependency-free tests for mission persistence, idempotency, safety prompts, callback updates, and malformed results
 - Kept issue publication, pull requests, pushes, and all other remote writes outside the assessment workflow
+- Added a separate two-step action that can publish one completed stored finding as a plain GitHub issue, with durable idempotency, interruption reconciliation, retryable errors, and no additional mutations
 - Defaulted assessments to static read-only inspection; repository code execution now requires separate approval and a secrets-free, network-restricted sandbox
 - Added bounded recovery for interrupted in-progress missions so stale work cannot block retries
 - Restored the signed-in personal account in the repository-owner selector with user-specific search, queue, and source links
 - Removed the redundant repository status badge column while retaining full lifecycle telemetry
 - Attached completed assessment findings directly to repository rows and cards with one-at-a-time progressive disclosure
 - Added severity-grouped finding summaries with proposed issue titles, root causes, confidence, and evidence/dependency counts
-- Routed Needs attention review actions back to the matching Overview repository and removed the disabled future issue-publication control
+- Routed Needs attention review actions back to the matching Overview repository and replaced the disabled future bulk control with restrained per-finding publication
 - Preserved meaningful assessment focus across automatic dashboard rerenders
 - Kept completed results reachable through a compact repository-attached recovery shortcut when filtering hides their repository
 

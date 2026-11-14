@@ -81,6 +81,19 @@ try {
     );
     writeFileSync(extensionPath, extensionSource, "utf8");
 
+    writeFileSync(
+        extensionPath,
+        extensionSource.replace('requestUrl.pathname === "/api/assessment-issues"', 'requestUrl.pathname === "/api/removed-issue-route"'),
+        "utf8",
+    );
+    expectResult(
+        "missing explicit issue publication endpoint",
+        runValidation(fixtureRoot),
+        1,
+        "Explicit assessment issue publication is missing its safe endpoint contract",
+    );
+    writeFileSync(extensionPath, extensionSource, "utf8");
+
     const htmlPath = join(fixtureRoot, "extension", "merge-harbor.html");
     const html = readFileSync(htmlPath, "utf8");
     writeFileSync(htmlPath, html.replace("</style>", ".repo-state { display: block; }</style>"), "utf8");

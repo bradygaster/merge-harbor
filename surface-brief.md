@@ -25,6 +25,7 @@
 | Assessment review | Semantic HTML/CSS | Completed findings attach to their repository row or card; one repository panel opens per collection, with nested finding details and executive summaries |
 | Assessment disclosure | Button-controlled region + native details | Repository triggers expose count and expanded state; findings summarize the proposed issue, root cause, severity, confidence, evidence, and dependencies before expansion |
 | Assessment recovery | Compact mission index + temporary repository entry | Completed results outside the current owner, scope, or search remain reachable without moving finding content back into the global mission area |
+| Issue publication | Inline two-step finding action | A stored draft can become one plain GitHub issue only after repository/title confirmation; loading, retryable error, and durable success stay attached to the finding |
 | Execution boundary | Prompt contract + mission state | Repository code never runs without separate approval and a secrets-free, network-restricted sandbox |
 | Interruption recovery | Durable timestamps + bounded timer | Stale in-progress missions fail with a clear retry action instead of blocking future assessments |
 
@@ -35,3 +36,5 @@ The generated control-room architecture and photorealistic room are not literal 
 Repository assessment refinement preserves that ambient hierarchy: active mission status remains compact, while completed evidence appears only beside the repository that produced it. List disclosures span the row; expanded cards span the collection width; narrow layouts stack summary copy before metadata without changing DOM or focus order.
 
 Ordinary dashboard refreshes preserve meaningful focus inside an open assessment. If filtering removes the repository, the compact mission index offers a temporary repository-attached shortcut rather than duplicating findings globally.
+
+Assessment remains read-only. Issue publication is a separate, explicit post-assessment remote write: the client submits only the durable mission/finding reference, the server derives repository and draft content from validated storage, and no labels, assignees, projects, comments, or automatic publication are permitted.
