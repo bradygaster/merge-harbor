@@ -22,10 +22,13 @@
 | Motion | CSS | One slow tide/current movement only |
 | Source data | Inline JavaScript | Current public open-PR totals; illustrative states labeled |
 | Repository assessments | Loopback HTTP + SDK session bridge | One click creates a durable mission and delegates bounded static, read-only inspection in an isolated local clone |
-| Assessment review | Semantic HTML/CSS | Root causes, evidence, dependencies, severity, confidence, and draft issue text; publishing remains disabled |
+| Assessment review | Semantic HTML/CSS | Completed findings attach to their repository row or card; one repository panel opens per collection, with nested finding details and executive summaries |
+| Assessment disclosure | Button-controlled region + native details | Repository triggers expose count and expanded state; findings summarize the proposed issue, root cause, severity, confidence, evidence, and dependencies before expansion |
 | Execution boundary | Prompt contract + mission state | Repository code never runs without separate approval and a secrets-free, network-restricted sandbox |
 | Interruption recovery | Durable timestamps + bounded timer | Stale in-progress missions fail with a clear retry action instead of blocking future assessments |
 
 ## Deliberate translation from comp
 
 The generated control-room architecture and photorealistic room are not literal product assets. The build preserves the panorama topology, berth density, central lock, signal grammar, and watch strip as semantic UI.
+
+Repository assessment refinement preserves that ambient hierarchy: active mission status remains compact, while completed evidence appears only beside the repository that produced it. List disclosures span the row; expanded cards span the collection width; narrow layouts stack summary copy before metadata without changing DOM or focus order.

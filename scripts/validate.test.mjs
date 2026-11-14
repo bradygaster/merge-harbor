@@ -92,6 +92,19 @@ try {
     );
     writeFileSync(htmlPath, html, "utf8");
 
+    writeFileSync(
+        htmlPath,
+        html.replace('role="region"', 'role="group"'),
+        "utf8",
+    );
+    expectResult(
+        "assessment disclosure without region semantics",
+        runValidation(fixtureRoot),
+        1,
+        "Repository assessment disclosures must expose a labelled region",
+    );
+    writeFileSync(htmlPath, html, "utf8");
+
 } finally {
     rmSync(fixtureRoot, { recursive: true, force: true });
 }

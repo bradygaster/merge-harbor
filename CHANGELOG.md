@@ -11,6 +11,9 @@
 - Added bounded recovery for interrupted in-progress missions so stale work cannot block retries
 - Restored the signed-in personal account in the repository-owner selector with user-specific search, queue, and source links
 - Removed the redundant repository status badge column while retaining full lifecycle telemetry
+- Attached completed assessment findings directly to repository rows and cards with one-at-a-time progressive disclosure
+- Added severity-grouped finding summaries with proposed issue titles, root causes, confidence, and evidence/dependency counts
+- Routed Needs attention review actions back to the matching Overview repository and removed the disabled future issue-publication control
 
 ## 0.2.0 - 2026-11-13
 

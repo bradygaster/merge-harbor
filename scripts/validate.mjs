@@ -16,6 +16,7 @@ const readmePath = join(root, "README.md");
 const changelogPath = join(root, "CHANGELOG.md");
 const assessmentCorePath = join(root, "extension", "assessment-core.mjs");
 const assessmentTestPath = join(root, "scripts", "assessment.test.mjs");
+const disclosureTestPath = join(root, "scripts", "disclosure.test.mjs");
 
 function requireFile(path, label) {
     if (!existsSync(path)) {
@@ -34,6 +35,7 @@ function requireFile(path, label) {
     [changelogPath, "Changelog"],
     [assessmentCorePath, "Assessment mission core"],
     [assessmentTestPath, "Assessment mission tests"],
+    [disclosureTestPath, "Assessment disclosure tests"],
 ].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -182,6 +184,18 @@ if (
 if (html.includes(".repo-state") || html.includes('class="repo-state')) {
     throw new Error("Repository rows must not render the removed status badge column.");
 }
+[
+    ['class="assessment-disclosure"', "Completed findings must render in a repository-attached disclosure."],
+    ['role="region"', "Repository assessment disclosures must expose a labelled region."],
+    ['class="finding assessment-finding"', "Assessment findings must use nested details elements."],
+    ["No reviewable root causes reported.", "Zero-finding assessments must provide the required empty state."],
+    ["Hide findings", "Expanded repository assessments must expose the required action label."],
+].forEach(([clause, message]) => {
+    if (!html.includes(clause)) throw new Error(message);
+});
+if (html.includes("Create selected issues")) {
+    throw new Error("The disabled future issue-publication control must not be rendered.");
+}
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (!scripts.length) {
     throw new Error("merge-harbor.html must contain its application script.");
@@ -194,6 +208,12 @@ const assessmentTest = spawnSync(process.execPath, [assessmentTestPath], {
 });
 if (assessmentTest.status !== 0) {
     throw new Error(assessmentTest.stderr || assessmentTest.stdout || "assessment.test.mjs failed.");
+}
+const disclosureTest = spawnSync(process.execPath, [disclosureTestPath], {
+    encoding: "utf8",
+});
+if (disclosureTest.status !== 0) {
+    throw new Error(disclosureTest.stderr || disclosureTest.stdout || "disclosure.test.mjs failed.");
 }
 
 console.info(`Merge Harbor plugin ${plugin.version} and extension manifest ${manifest.version} validation passed.`);

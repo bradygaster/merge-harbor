@@ -78,7 +78,8 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Start one isolated local assessment from a repository or attention entry
 - Track assessment progress across extension reloads
 - Recover interrupted assessments after a bounded timeout so users can retry
-- Review evidence-backed root causes, dependencies, severity, confidence, and draft issue text
+- Review completed findings inline with the repository that produced them
+- Scan executive summaries before expanding evidence, dependencies, and draft issue text
 
 ## Security and data
 
@@ -89,7 +90,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Assessment clones or worktrees, mission state, and approved experimental file changes remain local, but relevant repository content is processed through the GitHub Copilot service; assessments are not offline.
 - Assessment missions prohibit remote writes and default to static inspection in disposable local clones or worktrees coordinated by the current Copilot session.
 - Repository code execution is blocked unless the user separately approves it and a secrets-free, network-restricted sandbox is available.
-- Findings remain drafts. **Create selected issues** is intentionally unavailable until a separate explicit user-approved publishing action is implemented.
+- Findings remain local drafts. Issue publication is not included and requires a separate explicit user-approved workflow.
 
 ## Compatibility
 
@@ -124,6 +125,7 @@ Run the dependency-free validation:
 node scripts/validate.mjs
 node scripts/validate.test.mjs
 node scripts/assessment.test.mjs
+node scripts/disclosure.test.mjs
 ```
 
 For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.

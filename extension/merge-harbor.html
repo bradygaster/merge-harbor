@@ -916,7 +916,8 @@ FORM: Ambient command display with direct-action drill-down.
       grid-template-columns: minmax(180px, 0.9fr) minmax(340px, 1.6fr) 86px minmax(180px, 220px);
       grid-template-areas:
         "title track count action"
-        "updated track count action";
+        "updated track count action"
+        "assessment assessment assessment assessment";
       gap: 8px 16px;
       align-items: center;
       min-height: 104px;
@@ -948,7 +949,8 @@ FORM: Ambient command display with direct-action drill-down.
         "track track"
         "count count"
         "updated updated"
-        "action action";
+        "action action"
+        "assessment assessment";
       gap: 14px;
       border: 1px solid var(--border-color-default, var(--cp-border));
       border-radius: var(--radius-medium, 6px);
@@ -970,6 +972,9 @@ FORM: Ambient command display with direct-action drill-down.
       align-self: end;
     }
     .repo-collection.card-view .repo-actions button { min-height: 44px; }
+    .repo-collection.card-view .repo-entry.assessment-open {
+      grid-column: 1 / -1;
+    }
     .repo-entry-title {
       min-width: 0;
       grid-area: title;
@@ -981,7 +986,7 @@ FORM: Ambient command display with direct-action drill-down.
       align-self: center;
     }
     .repo-action-button {
-      min-height: 36px;
+      min-height: 44px;
       align-self: center;
       padding: 6px 10px;
       border: 1px solid var(--border-color-control, var(--cp-border-strong));
@@ -1008,6 +1013,28 @@ FORM: Ambient command display with direct-action drill-down.
       background: var(--background-color-disabled, var(--cp-surface-soft));
       color: var(--text-color-disabled, var(--cp-text-muted));
       cursor: wait;
+    }
+    .assessment-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .assessment-toggle::after {
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      content: "";
+      transform: rotate(45deg) translateY(-2px);
+      transform-origin: center;
+      transition: transform 180ms cubic-bezier(.2,.8,.2,1);
+    }
+    .assessment-toggle[aria-expanded="true"]::after {
+      transform: rotate(225deg) translate(-1px, -1px);
+    }
+    .assessment-toggle[aria-expanded="false"]::after {
+      transition-duration: 140ms;
     }
     .mission-center {
       display: none;
@@ -1068,30 +1095,111 @@ FORM: Ambient command display with direct-action drill-down.
     .mission-status.queued { color: var(--text-color-accent, var(--cp-link)); }
     .mission-status.completed { color: var(--text-color-success, var(--cp-success)); }
     .mission-status.failed { color: var(--text-color-danger, var(--cp-danger)); }
-    .mission-review {
-      margin-top: 12px;
-      border-top: 1px solid var(--border-color-muted, var(--cp-border));
-      padding-top: 12px;
-    }
-    .mission-review summary {
-      width: fit-content;
-      color: var(--text-color-link, var(--cp-link));
+    .mission-retry {
+      min-height: 44px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
       font-weight: var(--font-weight-semibold, 600);
       cursor: pointer;
     }
-    .finding-list { display: grid; gap: 12px; margin-top: 12px; }
-    .finding {
-      padding: 12px;
-      border: 1px solid var(--border-color-default, var(--cp-border));
-      border-radius: var(--radius-medium, 6px);
+    .assessment-disclosure {
+      grid-area: assessment;
+      min-width: 0;
+      height: auto;
+      overflow: hidden;
+      opacity: 1;
+      transition:
+        height var(--assessment-duration, 180ms) cubic-bezier(.2,.8,.2,1),
+        opacity 140ms ease-out;
     }
-    .finding-head {
+    .assessment-disclosure[hidden] { display: none; }
+    .assessment-panel {
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color-default, var(--cp-border));
+    }
+    .assessment-panel-head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 16px;
+      gap: 20px;
     }
-    .finding-head h3 { margin: 0; font-size: var(--text-body-medium, 14px); }
+    .assessment-panel-head h2 {
+      margin: 0;
+      font-size: var(--text-title-medium, 20px);
+      letter-spacing: -0.015em;
+    }
+    .assessment-panel-head p {
+      max-width: 70ch;
+      margin: 5px 0 0;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .assessment-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px 12px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      text-align: right;
+    }
+    .assessment-meta strong { color: var(--text-color-default, var(--cp-text)); }
+    .finding-groups {
+      display: grid;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .finding-group {
+      display: grid;
+      gap: 8px;
+    }
+    .finding-group-heading {
+      margin: 0;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .finding {
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .finding summary {
+      min-height: 44px;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+    .finding summary:focus-visible {
+      outline: 3px solid var(--color-focus-outline, var(--cp-accent));
+      outline-offset: 2px;
+    }
+    .finding-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 18px;
+      align-items: start;
+      margin-left: 4px;
+    }
+    .finding-summary-copy {
+      display: grid;
+      gap: 4px;
+    }
+    .finding-summary-copy strong {
+      color: var(--text-color-default, var(--cp-text));
+      font-size: var(--text-body-medium, 14px);
+    }
+    .finding-summary-copy span {
+      display: -webkit-box;
+      max-width: 75ch;
+      overflow: hidden;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
     .finding-badges { display: flex; flex-wrap: wrap; gap: 6px; }
     .finding-badge {
       padding: 1px 7px;
@@ -1100,10 +1208,20 @@ FORM: Ambient command display with direct-action drill-down.
       font-size: var(--text-body-small, 12px);
       text-transform: capitalize;
     }
-    .finding h4 { margin: 12px 0 4px; font-size: var(--text-body-small, 12px); }
+    .finding-counts {
+      grid-column: 1 / -1;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .finding-body {
+      padding: 2px 16px 16px 38px;
+      border-top: 1px solid var(--border-color-muted, var(--cp-border));
+    }
+    .finding h4 { margin: 14px 0 5px; font-size: var(--text-body-small, 12px); }
+    .finding p { max-width: 75ch; margin: 0; }
     .finding ul { margin: 0; padding-left: 20px; }
     .finding pre {
-      max-height: 240px;
+      max-height: min(42vh, 360px);
       margin: 6px 0 0;
       padding: 10px;
       overflow: auto;
@@ -1113,12 +1231,18 @@ FORM: Ambient command display with direct-action drill-down.
       white-space: pre-wrap;
       font: var(--text-code-block, 12px)/1.5 var(--font-mono, Consolas, monospace);
     }
-    .finding-actions { margin-top: 12px; }
-    .finding-actions button {
-      min-height: 36px;
-      padding: 6px 12px;
+    .assessment-empty {
+      margin-top: 16px;
+      padding: 18px;
       border: 1px solid var(--border-color-default, var(--cp-border));
       border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+    }
+    .assessment-empty strong { display: block; }
+    .assessment-empty span {
+      display: block;
+      margin-top: 4px;
+      color: var(--text-color-muted, var(--cp-text-muted));
     }
     .mission-spinner {
       display: inline-block;
@@ -1465,13 +1589,16 @@ FORM: Ambient command display with direct-action drill-down.
       font-size: var(--text-body-small, 12px);
     }
     .ambient-action-open {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
       color: var(--text-color-link, var(--cp-link));
       font-weight: var(--font-weight-semibold, 600);
       white-space: nowrap;
     }
     .attention-assess,
     .ambient-assess {
-      min-height: 36px;
+      min-height: 44px;
       padding: 6px 10px;
       border: 1px solid var(--border-color-control, var(--cp-border-strong));
       border-radius: var(--radius-medium, 6px);
@@ -1543,7 +1670,7 @@ FORM: Ambient command display with direct-action drill-down.
     .attention-board { max-width: 1240px; margin: 0 auto; }
     .attention-row { grid-template-columns: 52px minmax(220px, 1.5fr) minmax(220px, 1fr) 120px 94px 150px; }
     .attention-open {
-      min-height: 36px;
+      min-height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1581,7 +1708,8 @@ FORM: Ambient command display with direct-action drill-down.
         grid-template-areas:
           "title count action"
           "track track track"
-          "updated updated updated";
+          "updated updated updated"
+          "assessment assessment assessment";
         gap: 10px 16px;
       }
       .repo-collection.list-view .repo-telemetry {
@@ -1681,7 +1809,8 @@ FORM: Ambient command display with direct-action drill-down.
           "track track"
           "count count"
           "updated updated"
-          "action action";
+          "action action"
+          "assessment assessment";
       }
       .repo-actions { width: 100%; }
       .repo-action-button { min-height: 44px; width: 100%; }
@@ -1703,8 +1832,12 @@ FORM: Ambient command display with direct-action drill-down.
       .attention-action, .attention-age, .attention-open, .attention-assess { grid-column: 2; text-align: left; }
       .attention-open, .attention-assess { min-height: 44px; }
       .mission-center { padding: 14px 16px; }
-      .mission-center-head, .finding-head { flex-direction: column; }
+      .mission-center-head, .assessment-panel-head { flex-direction: column; }
       .mission-summary { grid-template-columns: 1fr; gap: 8px; }
+      .assessment-meta { justify-content: flex-start; text-align: left; }
+      .finding-summary { grid-template-columns: 1fr; }
+      .finding-badges { grid-row: auto; }
+      .finding-body { padding-left: 16px; }
       .attention-head { align-items: flex-start; gap: 8px; }
       .footer { padding: 12px 16px; align-items: flex-start; flex-direction: column; }
       .repo-empty { margin: 14px; padding: 24px 16px; }
@@ -1718,6 +1851,10 @@ FORM: Ambient command display with direct-action drill-down.
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
+      }
+      .assessment-disclosure,
+      .assessment-toggle::after {
+        transition: none !important;
       }
     }
   </style>
@@ -1780,7 +1917,7 @@ FORM: Ambient command display with direct-action drill-down.
             <div class="mission-center-head">
               <div>
                 <h2>Repository assessments</h2>
-                <p>The disposable clone or worktree, mission state, and any approved experimental file changes stay local, but assessment is not offline: relevant repository content is processed through the GitHub Copilot service, and GitHub metadata is read using your authenticated gh access. Inspection is static and read-only by default; repository code never runs without separate approval and a secrets-free, network-restricted sandbox, and remote repository writes are prohibited.</p>
+                <p>Active and failed assessments appear here. Review completed findings from the repository that produced them. Assessment is read-only by default, processes relevant content through GitHub Copilot, and never writes to the remote repository.</p>
               </div>
             </div>
             <div id="mission-list" class="mission-list"></div>
@@ -1902,8 +2039,10 @@ FORM: Ambient command display with direct-action drill-down.
     let currentOwnerKind = "organization";
     let refreshTimer;
     let overviewLayout = "list";
+    let openAssessmentRepositoryKey;
     const missionsById = new Map();
     const latestMissionByRepository = new Map();
+    const openFindingIndexesByRepository = new Map();
     const states = ["waiting","flowing","blocked","flowing","merging","flowing","waiting","blocked","flowing","merging","flowing","waiting","merging","flowing","blocked","flowing","waiting","merging","flowing","blocked"];
     const stateLabel = { flowing:"clear", waiting:"waiting", blocked:"blocked", merging:"ready", unknown:"unknown" };
 
@@ -1973,15 +2112,26 @@ FORM: Ambient command display with direct-action drill-down.
       return latestMissionByRepository.get(repoKey(owner, name));
     }
 
-    function assessmentButton(owner, name, className = "repo-action-button primary") {
+    function missionPanelId(missionId) {
+      return `assessment-${String(missionId).replace(/[^A-Za-z0-9_-]/g, "-")}`;
+    }
+
+    function assessmentButton(owner, name, className = "repo-action-button primary", routeToOverview = false) {
       const mission = latestMission(owner, name);
       if (mission?.status === "queued" || mission?.status === "in_progress") {
-        return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Repository assessment in progress</button>`;
+        return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Assessment in progress</button>`;
       }
       if (mission?.status === "completed") {
-        return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}">Review findings</button>`;
+        const key = repoKey(owner, name);
+        const findings = Array.isArray(mission.findings) ? mission.findings : [];
+        if (routeToOverview) {
+          return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}" data-review-route="overview">Review findings (${findings.length})</button>`;
+        }
+        const expanded = openAssessmentRepositoryKey === key;
+        return `<button type="button" class="${className} assessment-toggle" data-review-mission="${escapeHtml(mission.id)}" data-review-repository="${escapeHtml(key)}" aria-expanded="${expanded}" aria-controls="${missionPanelId(mission.id)}">${expanded ? "Hide findings" : `Review findings (${findings.length})`}</button>`;
       }
-      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through GitHub Copilot. Remote writes are prohibited.">Assess repository</button>`;
+      const label = mission?.status === "failed" ? "Retry assessment" : "Assess repository";
+      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through GitHub Copilot. Remote writes are prohibited.">${label}</button>`;
     }
 
     function ingestMission(mission) {
@@ -1994,46 +2144,18 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function renderMissionCenter() {
-      const missions = [...missionsById.values()]
+      const missions = [...latestMissionByRepository.values()]
+        .filter(mission => ["queued", "in_progress", "failed"].includes(mission.status))
         .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
         .slice(0, 8);
       const center = document.getElementById("mission-center");
       center.classList.toggle("visible", missions.length > 0);
       document.getElementById("mission-list").innerHTML = missions.map(mission => {
-        const statusLabel = mission.status === "in_progress" || mission.status === "queued"
-          ? "Repository assessment in progress"
-          : mission.status === "completed"
-            ? "Assessment complete"
+        const statusLabel = mission.status === "queued"
+          ? "Starting assessment…"
+          : mission.status === "in_progress"
+            ? "Assessment in progress"
             : "Assessment failed";
-        const findings = Array.isArray(mission.findings) ? mission.findings : [];
-        const review = mission.status === "completed"
-          ? `<details class="mission-review" id="mission-review-${escapeHtml(mission.id)}">
-              <summary>Review findings (${findings.length})</summary>
-              <div class="finding-list">
-                ${findings.length ? findings.map((finding, index) => `
-                  <article class="finding">
-                    <div class="finding-head">
-                      <h3>${index + 1}. ${escapeHtml(finding.rootCause)}</h3>
-                      <div class="finding-badges">
-                        <span class="finding-badge">${escapeHtml(finding.severity)} severity</span>
-                        <span class="finding-badge">${escapeHtml(finding.confidence)} confidence</span>
-                      </div>
-                    </div>
-                    <h4>Evidence</h4>
-                    <ul>${finding.evidence.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
-                    <h4>Dependencies</h4>
-                    ${finding.dependencies?.length ? `<ul>${finding.dependencies.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<span>No known dependencies.</span>`}
-                    <h4>Draft issue</h4>
-                    <strong>${escapeHtml(finding.draftIssue.title)}</strong>
-                    <pre>${escapeHtml(finding.draftIssue.body)}</pre>
-                  </article>`).join("") : `<div class="repo-empty"><h2>No root causes reported</h2><p>The assessment completed without a reviewable issue draft.</p></div>`}
-              </div>
-              <div class="finding-actions">
-                <button type="button" disabled title="Issue creation requires a separate future user-approved action">Create selected issues</button>
-                <span> Issue publication is not included in this release.</span>
-              </div>
-            </details>`
-          : "";
         return `<article class="mission-card" data-mission-id="${escapeHtml(mission.id)}">
           <div class="mission-summary">
             <div class="mission-repository">
@@ -2047,7 +2169,7 @@ FORM: Ambient command display with direct-action drill-down.
             <time datetime="${escapeHtml(mission.updatedAt)}">${new Date(mission.updatedAt).toLocaleTimeString()}</time>
           </div>
           ${mission.message && mission.message !== statusLabel ? `<p>${escapeHtml(mission.message)}</p>` : ""}
-          ${review}
+          ${mission.status === "failed" ? `<button type="button" class="mission-retry" data-assess-owner="${escapeHtml(mission.repository.owner)}" data-assess-name="${escapeHtml(mission.repository.name)}">Retry assessment</button>` : ""}
         </article>`;
       }).join("");
     }
@@ -2077,16 +2199,179 @@ FORM: Ambient command display with direct-action drill-down.
         console.error(error);
         showError(`Could not assess ${owner}/${name}. ${error.message}`);
         button.disabled = false;
-        button.textContent = "Assess repository";
+        button.textContent = "Retry assessment";
       }
     }
 
-    function reviewMission(missionId) {
-      const review = document.getElementById(`mission-review-${missionId}`);
-      if (!review) return;
-      review.open = true;
-      review.scrollIntoView({ behavior: "smooth", block: "start" });
-      review.querySelector("summary")?.focus();
+    function groupFindings(findings) {
+      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      const confidenceOrder = { high: 0, medium: 1, low: 2 };
+      const sorted = findings
+        .map((finding, originalIndex) => ({ finding, originalIndex }))
+        .sort((a, b) =>
+          severityOrder[a.finding.severity] - severityOrder[b.finding.severity]
+          || confidenceOrder[a.finding.confidence] - confidenceOrder[b.finding.confidence]
+          || a.originalIndex - b.originalIndex);
+      return [
+        { label: "Critical and high", items: sorted.filter(item => ["critical", "high"].includes(item.finding.severity)) },
+        { label: "Medium", items: sorted.filter(item => item.finding.severity === "medium") },
+        { label: "Low", items: sorted.filter(item => item.finding.severity === "low") },
+      ].filter(group => group.items.length);
+    }
+
+    function renderFinding(mission, repositoryKey, item) {
+      const { finding, originalIndex } = item;
+      const openIndexes = openFindingIndexesByRepository.get(repositoryKey);
+      const evidenceCount = finding.evidence.length;
+      const dependencyCount = finding.dependencies?.length ?? 0;
+      return `<details class="finding assessment-finding" data-assessment-repository="${escapeHtml(repositoryKey)}" data-finding-index="${originalIndex}"${openIndexes?.has(originalIndex) ? " open" : ""}>
+        <summary>
+          <span class="finding-summary">
+            <span class="finding-summary-copy">
+              <strong>${escapeHtml(finding.draftIssue.title)}</strong>
+              <span>${escapeHtml(finding.rootCause)}</span>
+            </span>
+            <span class="finding-badges">
+              <span class="finding-badge">${escapeHtml(finding.severity)} severity</span>
+              <span class="finding-badge">${escapeHtml(finding.confidence)} confidence</span>
+            </span>
+            <span class="finding-counts">${evidenceCount} evidence item${evidenceCount === 1 ? "" : "s"} · ${dependencyCount} dependenc${dependencyCount === 1 ? "y" : "ies"}</span>
+          </span>
+        </summary>
+        <div class="finding-body">
+          <h4>Root cause</h4>
+          <p>${escapeHtml(finding.rootCause)}</p>
+          <h4>Evidence</h4>
+          <ul>${finding.evidence.map(evidence => `<li>${escapeHtml(evidence)}</li>`).join("")}</ul>
+          <h4>Dependencies</h4>
+          ${dependencyCount ? `<ul>${finding.dependencies.map(dependency => `<li>${escapeHtml(dependency)}</li>`).join("")}</ul>` : `<p>No known dependencies.</p>`}
+          <h4>Proposed issue</h4>
+          <strong>${escapeHtml(finding.draftIssue.title)}</strong>
+          <pre tabindex="0">${escapeHtml(finding.draftIssue.body)}</pre>
+        </div>
+      </details>`;
+    }
+
+    function renderAssessmentPanel(owner, name, mission) {
+      if (mission?.status !== "completed") return "";
+      const key = repoKey(owner, name);
+      const findings = Array.isArray(mission.findings) ? mission.findings : [];
+      const urgentCount = findings.filter(finding => ["critical", "high"].includes(finding.severity)).length;
+      const expanded = openAssessmentRepositoryKey === key;
+      const groups = groupFindings(findings);
+      return `<div id="${missionPanelId(mission.id)}" class="assessment-disclosure" data-assessment-panel="${escapeHtml(key)}" role="region" aria-labelledby="${missionPanelId(mission.id)}-heading"${expanded ? "" : " hidden"}>
+        <div class="assessment-panel">
+          <div class="assessment-panel-head">
+            <div>
+              <h2 id="${missionPanelId(mission.id)}-heading" tabindex="-1">Assessment findings</h2>
+              <p>Review evidence-backed root causes before deciding whether to act. Findings remain local drafts and nothing is published from this view.</p>
+            </div>
+            <div class="assessment-meta">
+              <span><strong>${findings.length}</strong> finding${findings.length === 1 ? "" : "s"}</span>
+              <span><strong>${urgentCount}</strong> critical/high</span>
+              <span>Assessed <time datetime="${escapeHtml(mission.updatedAt)}">${new Date(mission.updatedAt).toLocaleString()}</time></span>
+              <span>${escapeHtml(mission.repository.defaultBranch)} @ ${escapeHtml(mission.repository.targetSha.slice(0, 12))}</span>
+            </div>
+          </div>
+          ${groups.length ? `<div class="finding-groups">${groups.map(group => `<section class="finding-group" aria-labelledby="${missionPanelId(mission.id)}-${group.label.toLowerCase().replaceAll(" ", "-")}">
+            <h3 class="finding-group-heading" id="${missionPanelId(mission.id)}-${group.label.toLowerCase().replaceAll(" ", "-")}">${group.label} · ${group.items.length}</h3>
+            ${group.items.map(item => renderFinding(mission, key, item)).join("")}
+          </section>`).join("")}</div>` : `<div class="assessment-empty"><strong>No reviewable root causes reported.</strong><span>The assessment completed without an evidence-backed issue draft.</span></div>`}
+        </div>
+      </div>`;
+    }
+
+    function captureFindingState() {
+      document.querySelectorAll(".assessment-finding").forEach(details => {
+        const key = details.dataset.assessmentRepository;
+        const index = Number(details.dataset.findingIndex);
+        const openIndexes = openFindingIndexesByRepository.get(key) ?? new Set();
+        if (details.open) openIndexes.add(index);
+        else openIndexes.delete(index);
+        openFindingIndexesByRepository.set(key, openIndexes);
+      });
+    }
+
+    function clearAssessmentDisclosureState() {
+      openAssessmentRepositoryKey = undefined;
+      openFindingIndexesByRepository.clear();
+    }
+
+    function animateAssessmentPanel(panel, expand) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reducedMotion) {
+        panel.hidden = !expand;
+        panel.style.height = "";
+        panel.style.opacity = "";
+        return;
+      }
+      panel.style.setProperty("--assessment-duration", expand ? "180ms" : "140ms");
+      if (expand) {
+        panel.hidden = false;
+        panel.style.height = "0px";
+        panel.style.opacity = "0";
+        requestAnimationFrame(() => {
+          panel.style.height = `${panel.scrollHeight}px`;
+          panel.style.opacity = "1";
+        });
+      } else {
+        panel.style.height = `${panel.scrollHeight}px`;
+        panel.style.opacity = "1";
+        requestAnimationFrame(() => {
+          panel.style.height = "0px";
+          panel.style.opacity = "0";
+        });
+      }
+      const finishTransition = event => {
+        if (event.propertyName !== "height") return;
+        panel.removeEventListener("transitionend", finishTransition);
+        panel.hidden = !expand;
+        panel.style.height = "";
+        panel.style.opacity = "";
+        panel.style.removeProperty("--assessment-duration");
+      };
+      panel.addEventListener("transitionend", finishTransition);
+    }
+
+    function syncAssessmentControls(repositoryKey, expanded) {
+      document.querySelectorAll("[data-review-repository]").forEach(button => {
+        if (button.dataset.reviewRepository !== repositoryKey) return;
+        button.setAttribute("aria-expanded", String(expanded));
+        const mission = missionsById.get(button.dataset.reviewMission);
+        const count = Array.isArray(mission?.findings) ? mission.findings.length : 0;
+        button.firstChild.textContent = expanded ? "Hide findings" : `Review findings (${count})`;
+      });
+    }
+
+    function setAssessmentOpen(repositoryKey, expanded) {
+      const panel = [...document.querySelectorAll("[data-assessment-panel]")]
+        .find(candidate => candidate.dataset.assessmentPanel === repositoryKey);
+      if (!panel) return;
+      panel.closest(".repo-entry")?.classList.toggle("assessment-open", expanded);
+      syncAssessmentControls(repositoryKey, expanded);
+      animateAssessmentPanel(panel, expanded);
+    }
+
+    function reviewMission(missionId, sourceButton) {
+      const mission = missionsById.get(missionId);
+      if (!mission) return;
+      const key = mission.repository.key;
+      const routeToOverview = sourceButton.dataset.reviewRoute === "overview";
+      if (routeToOverview) showView("overview");
+      const shouldExpand = routeToOverview || openAssessmentRepositoryKey !== key;
+      if (openAssessmentRepositoryKey && openAssessmentRepositoryKey !== key) {
+        setAssessmentOpen(openAssessmentRepositoryKey, false);
+      }
+      openAssessmentRepositoryKey = shouldExpand ? key : undefined;
+      setAssessmentOpen(key, shouldExpand);
+      if (routeToOverview && shouldExpand) {
+        const panel = document.getElementById(missionPanelId(missionId));
+        panel?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "start",
+        });
+        panel?.querySelector("h2")?.focus({ preventScroll: true });
+      }
     }
 
     function berth(repo, index) {
@@ -2134,6 +2419,8 @@ FORM: Ambient command display with direct-action drill-down.
     function repositoryEntry(repo) {
       const owner = repo.owner || currentOwner;
       const key = repoKey(owner, repo.name);
+      const mission = latestMission(owner, repo.name);
+      const assessmentOpen = openAssessmentRepositoryKey === key && mission?.status === "completed";
       const isPersonal = personalRepoKeys.has(key);
       const updated = repo.pushedAt
         ? `Updated ${new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(Math.round((new Date(repo.pushedAt) - Date.now()) / 86400000), "day")}`
@@ -2146,7 +2433,7 @@ FORM: Ambient command display with direct-action drill-down.
         ? `<div class="metric-grid repo-telemetry" data-help="Six mutually exclusive counts cover this repository's full open pull request queue.">${telemetryItems.map(item => metricSwitch(item, queueUrl(owner, repo.name, item.key), repo.prs, `${owner}/${repo.name}'s open queue`)).join("")}</div>`
         : `<div class="metric-unavailable" data-help="Full-queue telemetry is unavailable for this repository">Telemetry unavailable</div>`;
       return `
-        <article class="repo-entry" data-help="${escapeHtml(owner)}/${escapeHtml(repo.name)} is shown with full-queue pull request telemetry">
+        <article class="repo-entry${assessmentOpen ? " assessment-open" : ""}" data-repository-key="${escapeHtml(key)}" data-help="${escapeHtml(owner)}/${escapeHtml(repo.name)} is shown with full-queue pull request telemetry">
           <div class="repo-entry-title">
             <a href="${repo.url}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
             <p>${activeRepoScope === "personal" ? `${escapeHtml(owner)} · ` : ""}${escapeHtml(repo.description || "Repository activity and pull request flow")}</p>
@@ -2158,6 +2445,7 @@ FORM: Ambient command display with direct-action drill-down.
             ${assessmentButton(owner, repo.name)}
             <button type="button" class="repo-action-button" data-personal-owner="${escapeHtml(owner)}" data-personal-name="${escapeHtml(repo.name)}" aria-pressed="${isPersonal}" data-help="${isPersonal ? "Remove this repository from My repos" : "Add this repository to My repos"}">${isPersonal ? "Remove from My repos" : "Add to My repos"}</button>
           </div>
+          ${renderAssessmentPanel(owner, repo.name, mission)}
         </article>`;
     }
 
@@ -2197,6 +2485,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function renderDashboard() {
+      captureFindingState();
       const watch = buildWatch();
       const total = repos.reduce((sum, repo) => sum + repo.prs, 0);
       const totals = ["blocked", "review", "drafts", "checks", "ready", "other"].reduce((result, key) => {
@@ -2243,7 +2532,7 @@ FORM: Ambient command display with direct-action drill-down.
           <span class="ambient-action-rank">${index + 1}</span>
           <span class="ambient-action-copy"><strong>${escapeHtml(item.repo)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}</span></span>
           ${item.url ? `<a class="ambient-action-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="ambient-action-open">Details</span>`}
-          ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess") : ""}
+          ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess", true) : ""}
         </article>`).join("");
 
       const flowStages = [
@@ -2275,7 +2564,7 @@ FORM: Ambient command display with direct-action drill-down.
           <div class="attention-action"><strong>${escapeHtml(item.action)}</strong><span>Recommended intervention</span></div>
           <div class="attention-age">${item.age}</div>
           ${item.url ? `<a class="attention-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
-          ${item.name ? assessmentButton(item.owner, item.name, "attention-assess") : ""}
+          ${item.name ? assessmentButton(item.owner, item.name, "attention-assess", true) : ""}
         </article>`).join("");
       updateRepoScopeUi();
     }
@@ -2470,6 +2759,7 @@ FORM: Ambient command display with direct-action drill-down.
 
     async function activateRepoScope(scope) {
       if (scope === activeRepoScope) return;
+      clearAssessmentDisclosureState();
       if (scope === "personal") {
         await loadPersonalData({ blank: true });
         return;
@@ -2587,8 +2877,18 @@ FORM: Ambient command display with direct-action drill-down.
         return;
       }
       const reviewButton = event.target.closest("[data-review-mission]");
-      if (reviewButton) reviewMission(reviewButton.dataset.reviewMission);
+      if (reviewButton) reviewMission(reviewButton.dataset.reviewMission, reviewButton);
     });
+    document.getElementById("repo-collection").addEventListener("toggle", event => {
+      const details = event.target.closest(".assessment-finding");
+      if (!details) return;
+      const key = details.dataset.assessmentRepository;
+      const index = Number(details.dataset.findingIndex);
+      const openIndexes = openFindingIndexesByRepository.get(key) ?? new Set();
+      if (details.open) openIndexes.add(index);
+      else openIndexes.delete(index);
+      openFindingIndexesByRepository.set(key, openIndexes);
+    }, true);
 
     window.addEventListener("merge-harbor:missions", event => {
       (event.detail?.missions || []).forEach(ingestMission);
@@ -2600,6 +2900,7 @@ FORM: Ambient command display with direct-action drill-down.
     });
 
     document.getElementById("org-select").addEventListener("change", async () => {
+      clearAssessmentDisclosureState();
       organizationRepos = [];
       organizationHasMore = false;
       organizationCatalogTotal = 0;
