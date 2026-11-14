@@ -2,7 +2,7 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
-Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. Assessments default to static, read-only inspection and never run repository tests, builds, scripts, hooks, package installs, package-manager commands, or executable repository code. A clone or worktree is filesystem separation, not execution isolation. Any execution requires separate explicit user approval and a real isolated sandbox with secrets removed and outbound network access restricted. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
+Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. The clone or worktree, mission state, and any approved experimental file changes stay on the user's machine, but assessment is not offline: relevant repository content is processed through the GitHub Copilot service, and GitHub metadata is read using the user's authenticated `gh` access. Assessments default to static, read-only inspection and never run repository tests, builds, scripts, hooks, package installs, package-manager commands, or executable repository code. A clone or worktree is filesystem separation, not execution isolation. Any execution requires separate explicit user approval and a real isolated sandbox with secrets removed and outbound network access restricted. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
 
 ## Install from the marketplace
 
@@ -86,6 +86,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - GitHub data is read through the locally authenticated `gh` CLI.
 - The extension does not require an external service or send preferences to a Merge Harbor backend.
 - Repository access is limited to what the authenticated GitHub account can access.
+- Assessment clones or worktrees, mission state, and approved experimental file changes remain local, but relevant repository content is processed through the GitHub Copilot service; assessments are not offline.
 - Assessment missions prohibit remote writes and default to static inspection in disposable local clones or worktrees coordinated by the current Copilot session.
 - Repository code execution is blocked unless the user separately approves it and a secrets-free, network-restricted sandbox is available.
 - Findings remain drafts. **Create selected issues** is intentionally unavailable until a separate explicit user-approved publishing action is implemented.

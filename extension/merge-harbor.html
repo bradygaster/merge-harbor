@@ -1815,7 +1815,7 @@ FORM: Ambient command display with direct-action drill-down.
             <div class="mission-center-head">
               <div>
                 <h2>Repository assessments</h2>
-                <p>Assessments default to static, read-only inspection in a disposable local clone. Repository code never runs without separate approval and a secrets-free, network-restricted sandbox.</p>
+                <p>The disposable clone or worktree, mission state, and any approved experimental file changes stay local, but assessment is not offline: relevant repository content is processed through the GitHub Copilot service, and GitHub metadata is read using your authenticated gh access. Inspection is static and read-only by default; repository code never runs without separate approval and a secrets-free, network-restricted sandbox, and remote repository writes are prohibited.</p>
               </div>
             </div>
             <div id="mission-list" class="mission-list"></div>
@@ -2016,7 +2016,7 @@ FORM: Ambient command display with direct-action drill-down.
       if (mission?.status === "completed") {
         return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}">Review findings</button>`;
       }
-      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}">Assess repository</button>`;
+      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through GitHub Copilot. Remote writes are prohibited.">Assess repository</button>`;
     }
 
     function ingestMission(mission) {
