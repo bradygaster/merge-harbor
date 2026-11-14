@@ -164,6 +164,14 @@ if (!extensionSource.includes('candidate.status === "queued"') && !extensionSour
 if (!extensionSource.includes("recoverInterruptedMissions(missionStore)")) {
     throw new Error("Interrupted in-progress missions must be recovered after a bounded timeout.");
 }
+if (
+    !extensionSource.includes("repositoryOwner(login:$login)") ||
+    !extensionSource.includes("repositories(first:100, affiliations:[OWNER]") ||
+    !extensionSource.includes('kind: "user"') ||
+    !extensionSource.includes('owner.kind === "user" ? "user" : "org"')
+) {
+    throw new Error("Repository catalogs must support the signed-in user and organizations with owner-kind search.");
+}
 
 const html = readFileSync(htmlPath, "utf8");
 if (!html.includes('src="/assets/merge-harbor-captain.png"')) {
@@ -175,6 +183,16 @@ assetPaths.forEach((path) => requireFile(path, "Packaged canvas asset"));
 const captainImage = readFileSync(captainImagePath);
 if (captainImage.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
     throw new Error("The Merge Harbor captain asset must be a PNG.");
+}
+if (
+    !html.includes("(personal)") ||
+    !html.includes('currentOwnerKind === "user"') ||
+    !html.includes("?tab=repositories")
+) {
+    throw new Error("The owner selector and links must preserve personal-account owner kind.");
+}
+if (html.includes(".repo-state") || html.includes('class="repo-state')) {
+    throw new Error("Repository rows must not render the removed status badge column.");
 }
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (!scripts.length) {

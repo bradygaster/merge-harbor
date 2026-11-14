@@ -944,10 +944,10 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .repo-collection.list-view .repo-entry {
       display: grid;
-      grid-template-columns: minmax(180px, 0.9fr) minmax(300px, 1.4fr) 86px 92px minmax(150px, 180px);
+      grid-template-columns: minmax(180px, 0.9fr) minmax(340px, 1.6fr) 86px minmax(180px, 220px);
       grid-template-areas:
-        "title track count state action"
-        "updated track count state action";
+        "title track count action"
+        "updated track count action";
       gap: 8px 16px;
       align-items: center;
       min-height: 104px;
@@ -969,7 +969,7 @@ FORM: Ambient command display with direct-action drill-down.
       align-items: stretch;
     }
     .repo-collection.card-view .repo-entry {
-      min-height: 336px;
+      min-height: 304px;
       padding: 16px;
       display: grid;
       grid-template-columns: 1fr auto;
@@ -977,7 +977,7 @@ FORM: Ambient command display with direct-action drill-down.
       grid-template-areas:
         "title title"
         "track track"
-        "count state"
+        "count count"
         "updated updated"
         "action action";
       gap: 14px;
@@ -1192,52 +1192,6 @@ FORM: Ambient command display with direct-action drill-down.
       font-size: var(--text-body-small, 12px);
       font-weight: 400;
     }
-    .repo-state {
-      grid-area: state;
-      min-width: 82px;
-      justify-self: start;
-      justify-content: center;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 2px 8px;
-      border: 1px solid currentColor;
-      border-radius: var(--radius-full, 999px);
-      font-size: var(--text-body-small, 12px);
-      font-weight: var(--font-weight-semibold, 600);
-      text-transform: capitalize;
-    }
-    .repo-state::before {
-      width: 7px;
-      height: 7px;
-      border: 2px solid currentColor;
-      border-radius: 50%;
-      content: "";
-    }
-    .repo-state.flowing { color: var(--text-color-success, var(--cp-success)); }
-    .repo-state.waiting { color: var(--text-color-attention, var(--cp-warning)); }
-    .repo-state.blocked { color: var(--text-color-danger, var(--cp-danger)); }
-    .repo-state.merging { color: var(--text-color-accent, var(--cp-link)); }
-    .repo-state.unknown { color: var(--text-color-muted, var(--cp-text-muted)); }
-    .repo-track {
-      grid-area: track;
-      position: relative;
-      height: 8px;
-      border: 1px solid var(--border-color-default, var(--cp-border));
-      border-radius: var(--radius-full, 999px);
-      background: var(--background-color-muted, var(--cp-surface-soft));
-      overflow: hidden;
-    }
-    .repo-track > i {
-      display: block;
-      height: 100%;
-      background: currentColor;
-    }
-    .repo-track.flowing { color: var(--text-color-success, var(--cp-success)); }
-    .repo-track.waiting { color: var(--text-color-attention, var(--cp-warning)); }
-    .repo-track.blocked { color: var(--text-color-danger, var(--cp-danger)); }
-    .repo-track.merging { color: var(--text-color-accent, var(--cp-link)); }
-    .repo-track.unknown { color: var(--text-color-muted, var(--cp-text-muted)); }
     .repo-telemetry,
     .metric-grid {
       grid-area: track;
@@ -1307,7 +1261,6 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .repo-updated { grid-area: updated; }
     .repo-collection.card-view .repo-count,
-    .repo-collection.card-view .repo-state,
     .repo-collection.card-view .repo-updated { align-self: end; }
 
     .repo-scope-bar {
@@ -1655,11 +1608,11 @@ FORM: Ambient command display with direct-action drill-down.
 
     @media (max-width: 1180px) {
       .repo-collection.list-view .repo-entry {
-        grid-template-columns: minmax(220px, 1fr) 100px 110px 124px;
+        grid-template-columns: minmax(220px, 1fr) 100px minmax(180px, 220px);
         grid-template-areas:
-          "title count state action"
-          "track track track track"
-          "updated updated updated updated";
+          "title count action"
+          "track track track"
+          "updated updated updated";
         gap: 10px 16px;
       }
       .repo-collection.list-view .repo-telemetry {
@@ -1758,7 +1711,7 @@ FORM: Ambient command display with direct-action drill-down.
         grid-template-areas:
           "title title"
           "track track"
-          "count state"
+          "count count"
           "updated updated"
           "action action";
       }
@@ -1810,12 +1763,12 @@ FORM: Ambient command display with direct-action drill-down.
         </div>
         <div>
           <h1>Merge Harbor</h1>
-          <div class="subline" id="org-subline">Choose an organization to load live repository data</div>
+          <div class="subline" id="org-subline">Choose your account or an organization to load live repository data</div>
         </div>
       </div>
-      <div class="org-controls" aria-label="Organization and refresh controls">
-        <select id="org-select" class="control" data-help="Select one of the organizations available to your signed-in GitHub account" aria-label="GitHub organization">
-          <option>Loading organizations…</option>
+      <div class="org-controls" aria-label="Repository owner and refresh controls">
+        <select id="org-select" class="control" data-help="Select your personal account or an organization available to your signed-in GitHub account" aria-label="GitHub account or organization">
+          <option>Loading accounts…</option>
         </select>
         <button id="refresh-button" type="button" class="control" data-help="Refresh repository and open pull request totals now">Refresh</button>
         <label class="auto-refresh" data-help="Automatically reload repository data on the selected interval">
@@ -1833,7 +1786,7 @@ FORM: Ambient command display with direct-action drill-down.
         <button type="button" aria-selected="false" data-view="convoy" data-help="See live pull request counts by lifecycle condition and open filtered queues">PR flow</button>
         <button type="button" aria-selected="false" data-view="watchtower" data-help="Open the ranked pull requests where a human action can unblock flow">Needs attention</button>
       </nav>
-      <a class="fleet-health" id="blocked-queue-link-top" href="https://github.com/pulls" target="_blank" rel="noreferrer" aria-label="Open blocked pull requests" data-help="Open the organization's blocked pull request queue on GitHub">
+      <a class="fleet-health" id="blocked-queue-link-top" href="https://github.com/pulls" target="_blank" rel="noreferrer" aria-label="Open blocked pull requests" data-help="Open the selected owner's blocked pull request queue on GitHub">
         <div class="health-number" id="health-number">—</div>
         <div class="health-copy">
           <strong id="health-title">Loading fleet status</strong>
@@ -1841,12 +1794,12 @@ FORM: Ambient command display with direct-action drill-down.
         </div>
       </a>
     </header>
-    <div id="loading-banner" class="loading-banner" role="status">Refreshing GitHub organization data…</div>
+    <div id="loading-banner" class="loading-banner" role="status">Refreshing GitHub repository data…</div>
     <div id="error-banner" class="error-banner" role="alert"></div>
     <div id="loading-stage" class="loading-stage" role="status" aria-live="polite">
       <div class="loading-stage-content">
         <div class="spinner" aria-hidden="true"></div>
-        <strong id="loading-stage-title">Loading organization telemetry</strong>
+        <strong id="loading-stage-title">Loading repository telemetry</strong>
         <span>Reading repositories, checks, reviews, drafts, and merge readiness from GitHub…</span>
       </div>
     </div>
@@ -1856,7 +1809,7 @@ FORM: Ambient command display with direct-action drill-down.
         <div class="repo-scope-bar">
           <div class="repo-scope-tabs" role="tablist" aria-label="Repository set">
             <button type="button" class="repo-scope-tab" data-repo-scope="personal" role="tab" aria-selected="false">My repos <span class="repo-scope-count" id="personal-repo-count">0</span></button>
-            <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true">Organization repos <span class="repo-scope-count" id="organization-repo-count">20</span></button>
+            <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true"><span id="owner-repo-label">Selected repos</span> <span class="repo-scope-count" id="organization-repo-count">20</span></button>
           </div>
           <section id="mission-center" class="mission-center" aria-live="polite">
             <div class="mission-center-head">
@@ -1867,11 +1820,11 @@ FORM: Ambient command display with direct-action drill-down.
             </div>
             <div id="mission-list" class="mission-list"></div>
           </section>
-          <div class="repo-scope-caption" id="repo-scope-caption">Showing the selected organization</div>
+          <div class="repo-scope-caption" id="repo-scope-caption">Showing the selected repository owner</div>
         </div>
         <div class="ambient-overview">
           <div class="ambient-panel">
-            <a class="ambient-status" id="blocked-queue-link" href="https://github.com/pulls" target="_blank" rel="noreferrer" data-help="Open the organization's blocked pull request queue on GitHub">
+            <a class="ambient-status" id="blocked-queue-link" href="https://github.com/pulls" target="_blank" rel="noreferrer" data-help="Open the selected owner's blocked pull request queue on GitHub">
               <span class="ambient-number" id="ambient-blocked">—</span>
               <strong>blocked pull requests</strong>
               <span id="ambient-blocked-detail">Loading full-queue status…</span>
@@ -1899,17 +1852,17 @@ FORM: Ambient command display with direct-action drill-down.
           </div>
         </div>
         <div id="repo-search" class="repo-search">
-          <label class="repo-search-label" for="repo-search-input" data-help="Search all available repositories in the selected organization by name or description">
+          <label class="repo-search-label" for="repo-search-input" data-help="Search all repositories owned by the selected account or organization by name or description">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 2a4.5 4.5 0 1 0 2.82 8.006l3.837 3.837.686-.686-3.837-3.837A4.5 4.5 0 0 0 6.5 2Zm-3.5 4.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"/></svg>
-            <input id="repo-search-input" type="search" autocomplete="off" placeholder="Search organization repositories">
+            <input id="repo-search-input" type="search" autocomplete="off" placeholder="Search selected repositories">
           </label>
           <button id="repo-search-clear" class="repo-search-clear" type="button" hidden>Clear</button>
-          <span id="repo-search-status" class="repo-search-status">Search the selected organization</span>
+          <span id="repo-search-status" class="repo-search-status">Search the selected owner</span>
         </div>
         <div id="repo-collection" class="repo-collection list-view"></div>
         <div id="load-more" class="load-more" aria-live="polite">
           <button id="load-more-button" type="button">Load 20 more repositories</button>
-          <span id="load-more-status">Scroll to load more from the selected organization.</span>
+          <span id="load-more-status">Scroll to load more from the selected owner.</span>
         </div>
       </section>
 
@@ -1981,6 +1934,7 @@ FORM: Ambient command display with direct-action drill-down.
     let repositorySearchTimer;
     let loadingMore = false;
     let currentOwner = "github";
+    let currentOwnerKind = "organization";
     let refreshTimer;
     let overviewLayout = "list";
     const missionsById = new Map();
@@ -2002,14 +1956,6 @@ FORM: Ambient command display with direct-action drill-down.
         return "flowing";
       }
       return repo.state || stateAt(index);
-    }
-
-    function repoStateDetail(repo, state) {
-      if (!repo.metrics) return repo.stateDetail || "Full-queue telemetry unavailable";
-      if (state === "blocked") return `${repo.metrics.blocked.toLocaleString()} open PRs have failed checks, merge conflicts, or changes requested`;
-      if (state === "waiting") return `${(repo.metrics.review + repo.metrics.drafts + repo.metrics.checks).toLocaleString()} open PRs await review, draft completion, or checks`;
-      if (state === "merging") return `${repo.metrics.ready.toLocaleString()} open PRs are approved with passing checks`;
-      return "No blocked, waiting, or ready pull requests in the current queue";
     }
 
     const stageCopy = {
@@ -2041,7 +1987,8 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function organizationQueueUrl(key) {
-      const query = queueQuery(currentOwner, "*", key).replace(`repo:${currentOwner}/*`, `org:${currentOwner}`);
+      const ownerQualifier = currentOwnerKind === "user" ? "user" : "org";
+      const query = queueQuery(currentOwner, "*", key).replace(`repo:${currentOwner}/*`, `${ownerQualifier}:${currentOwner}`);
       return `https://github.com/pulls?q=${encodeURIComponent(query)}`;
     }
 
@@ -2219,11 +2166,10 @@ FORM: Ambient command display with direct-action drill-down.
       }).join(", ")})`;
     }
 
-    function repositoryEntry(repo, index, maxPrs) {
+    function repositoryEntry(repo) {
       const owner = repo.owner || currentOwner;
       const key = repoKey(owner, repo.name);
       const isPersonal = personalRepoKeys.has(key);
-      const state = stateFor(repo, index);
       const updated = repo.pushedAt
         ? `Updated ${new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(Math.round((new Date(repo.pushedAt) - Date.now()) / 86400000), "day")}`
         : "Recently active";
@@ -2242,7 +2188,6 @@ FORM: Ambient command display with direct-action drill-down.
           </div>
           ${telemetry}
           <div class="repo-count" data-help="Live open pull request total">${repo.prs.toLocaleString()}<span>open PRs</span></div>
-          <span class="repo-state ${state}" data-help="${escapeHtml(repoStateDetail(repo, state))}">${stateLabel[state]}</span>
           <time class="repo-updated" datetime="${repo.pushedAt || ""}" data-help="Most recent repository push activity">${updated}</time>
           <div class="repo-actions">
             ${assessmentButton(owner, repo.name)}
@@ -2295,17 +2240,16 @@ FORM: Ambient command display with direct-action drill-down.
       }, {});
       const blockedRepos = repos.filter(repo => (repo.metrics?.blocked ?? 0) > 0).length;
 
-      const maxPrs = Math.max(1, ...repos.map(repo => repo.prs));
       const collection = document.getElementById("repo-collection");
       collection.className = `repo-collection ${overviewLayout}-view`;
       collection.innerHTML = repos.length
-        ? repos.map((repo, index) => repositoryEntry(repo, index, maxPrs)).join("")
+        ? repos.map(repositoryEntry).join("")
         : activeRepoScope === "personal"
-          ? `<div class="repo-empty"><h2>Your personal harbor is empty</h2><p>Open Organization repos and add the repositories you want to monitor. My repos can include repositories from multiple organizations.</p></div>`
-          : `<div class="repo-empty"><h2>No repositories match</h2><p>Try a different repository name or description, or clear the search to restore the organization list.</p></div>`;
-      const personalOrganizationCount = new Set(repos.map(repo => repo.owner)).size;
+          ? `<div class="repo-empty"><h2>Your personal harbor is empty</h2><p>Open the selected owner repository list and add the repositories you want to monitor. My repos can include repositories from multiple owners.</p></div>`
+          : `<div class="repo-empty"><h2>No repositories match</h2><p>Try a different repository name or description, or clear the search to restore the selected owner list.</p></div>`;
+      const personalOwnerCount = new Set(repos.map(repo => repo.owner)).size;
       document.getElementById("repo-summary").innerHTML = activeRepoScope === "personal"
-        ? `<strong>${repos.length} my repos</strong> · ${personalOrganizationCount} organization${personalOrganizationCount === 1 ? "" : "s"} · ${total.toLocaleString()} open pull requests`
+        ? `<strong>${repos.length} my repos</strong> · ${personalOwnerCount} GitHub owner${personalOwnerCount === 1 ? "" : "s"} · ${total.toLocaleString()} open pull requests`
         : `<strong>${repos.length} of ${organizationCatalogTotal || repos.length} ${organizationSearchQuery ? "matches " : ""}loaded</strong> · ${currentOwner} · ${total.toLocaleString()} open pull requests`;
       document.getElementById("health-number").textContent = totals.blocked.toLocaleString();
       document.getElementById("health-title").textContent = "blocked PRs";
@@ -2326,7 +2270,7 @@ FORM: Ambient command display with direct-action drill-down.
         ? `<div class="distribution-donut" role="img" aria-label="${fleetItems.map(item => `${item.label}: ${item.value.toLocaleString()}`).join(", ")}" style="--distribution-gradient:${donutGradient(fleetItems, total)}">
             <div class="distribution-total"><strong>${total.toLocaleString()}</strong><span>open PRs</span></div>
           </div>
-        <div class="distribution-legend">${fleetItems.map(item => metricSwitch(item, activeQueueUrl(item.key), total, activeRepoScope === "personal" ? "My repos" : "the displayed organization queue")).join("")}</div>`
+        <div class="distribution-legend">${fleetItems.map(item => metricSwitch(item, activeQueueUrl(item.key), total, activeRepoScope === "personal" ? "My repos" : "the displayed owner queue")).join("")}</div>`
         : `<div class="distribution-empty">No open pull requests in the displayed repositories.</div>`;
 
       document.getElementById("ambient-actions").innerHTML = watch.slice(0, 3).map((item, index) => `
@@ -2378,14 +2322,14 @@ FORM: Ambient command display with direct-action drill-down.
       document.querySelector(".app").classList.toggle("org-loading", loading && blank);
       document.getElementById("loading-stage-title").textContent = owner
         ? `Loading ${owner}`
-        : "Loading organization telemetry";
+        : "Loading repository telemetry";
     }
 
     function showRepositorySearchPending(query) {
       const clearButton = document.getElementById("repo-search-clear");
       clearButton.hidden = !query;
       document.getElementById("repo-search-status").textContent = query
-        ? `Searching all ${organizationRepositoryCount.toLocaleString()} organization repositories…`
+        ? `Searching all ${organizationRepositoryCount.toLocaleString()} repositories owned by ${currentOwner}…`
         : `Restoring ${currentOwner} repositories…`;
       const collection = document.getElementById("repo-collection");
       collection.setAttribute("aria-busy", "true");
@@ -2412,8 +2356,9 @@ FORM: Ambient command display with direct-action drill-down.
       });
       document.getElementById("personal-repo-count").textContent = personalRepoKeys.size.toLocaleString();
       document.getElementById("organization-repo-count").textContent = organizationRepos.length.toLocaleString();
+      document.getElementById("owner-repo-label").textContent = `${currentOwner} repos`;
       document.getElementById("repo-scope-caption").textContent = activeRepoScope === "personal"
-        ? `${personalRepoKeys.size} saved repos across organizations`
+        ? `${personalRepoKeys.size} saved repos across GitHub owners`
         : `${organizationRepos.length} loaded from ${currentOwner}${organizationRepositoryCount ? ` · ${organizationRepositoryCount.toLocaleString()} total repositories` : ""}`;
       const search = document.getElementById("repo-search");
       search.classList.toggle("visible", activeRepoScope === "organization");
@@ -2421,8 +2366,8 @@ FORM: Ambient command display with direct-action drill-down.
       searchInput.placeholder = `Search ${currentOwner} repositories`;
       document.getElementById("repo-search-clear").hidden = !organizationSearchQuery;
       document.getElementById("repo-search-status").textContent = organizationSearchQuery
-        ? `${organizationCatalogTotal.toLocaleString()} matching repositories across ${organizationRepositoryCount.toLocaleString()} organization repositories`
-        : `Search all ${organizationRepositoryCount.toLocaleString()} organization repositories`;
+        ? `${organizationCatalogTotal.toLocaleString()} matches across ${organizationRepositoryCount.toLocaleString()} repositories owned by ${currentOwner}`
+        : `Search all ${organizationRepositoryCount.toLocaleString()} repositories owned by ${currentOwner}`;
       const loadMore = document.getElementById("load-more");
       loadMore.classList.toggle("visible", activeRepoScope === "organization" && (organizationHasMore || loadingMore));
       const button = document.getElementById("load-more-button");
@@ -2447,7 +2392,7 @@ FORM: Ambient command display with direct-action drill-down.
       activeRepoScope = "personal";
       repos = personalRepos;
       const organizationCount = new Set(repos.map(repo => repo.owner)).size;
-      document.getElementById("org-subline").textContent = `${repos.length} saved repositories across ${organizationCount} organization${organizationCount === 1 ? "" : "s"}`;
+      document.getElementById("org-subline").textContent = `${repos.length} saved repositories across ${organizationCount} GitHub owner${organizationCount === 1 ? "" : "s"}`;
       document.getElementById("refresh-status").textContent = `My repos refreshed ${new Date(data.refreshedAt).toLocaleTimeString()} · full-queue telemetry across the personal list`;
       const source = document.getElementById("source-link");
       source.href = "https://github.com/pulls";
@@ -2458,11 +2403,16 @@ FORM: Ambient command display with direct-action drill-down.
     function showOrganizationData(data) {
       activeRepoScope = "organization";
       repos = organizationRepos;
+      currentOwnerKind = data.owner.kind ?? currentOwnerKind;
       document.getElementById("org-subline").textContent = `${data.owner.name} · repositories ranked by open pull requests`;
-      document.getElementById("refresh-status").textContent = `Organization data refreshed ${new Date(data.refreshedAt).toLocaleTimeString()} · ${organizationRepos.length} repositories loaded`;
+      document.getElementById("refresh-status").textContent = `${currentOwner} data refreshed ${new Date(data.refreshedAt).toLocaleTimeString()} · ${organizationRepos.length} repositories loaded`;
       const source = document.getElementById("source-link");
-      source.href = `https://github.com/orgs/${currentOwner}/repositories`;
-      source.textContent = `${currentOwner} organization`;
+      source.href = currentOwnerKind === "user"
+        ? `https://github.com/${currentOwner}?tab=repositories`
+        : `https://github.com/orgs/${currentOwner}/repositories`;
+      source.textContent = currentOwnerKind === "user"
+        ? `${currentOwner} account`
+        : `${currentOwner} organization`;
       renderDashboard();
     }
 
@@ -2511,6 +2461,7 @@ FORM: Ambient command display with direct-action drill-down.
         if (!response.ok) throw new Error(data.error || "GitHub data could not be loaded.");
         if (document.getElementById("org-select").value !== owner || requestVersion !== organizationRequestVersion) return;
         currentOwner = data.owner.login;
+        currentOwnerKind = data.owner.kind ?? "organization";
         const existing = new Set((reset ? [] : organizationRepos).map(repo => repoKey(repo.owner, repo.name)));
         organizationRepos = [
           ...(reset ? [] : organizationRepos),
@@ -2562,7 +2513,7 @@ FORM: Ambient command display with direct-action drill-down.
         activeRepoScope = "organization";
         repos = organizationRepos;
         showOrganizationData({
-          owner: { login: currentOwner, name: currentOwner },
+          owner: { login: currentOwner, name: currentOwner, kind: currentOwnerKind },
           refreshedAt: new Date().toISOString(),
         });
         return;
@@ -2603,14 +2554,16 @@ FORM: Ambient command display with direct-action drill-down.
       try {
         const response = await fetch("/api/orgs", { cache: "no-store" });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "GitHub organizations could not be loaded.");
+        if (!response.ok) throw new Error(data.error || "GitHub repository owners could not be loaded.");
         const select = document.getElementById("org-select");
-        select.innerHTML = data.organizations.map(org => `<option value="${escapeHtml(org.login)}">${escapeHtml(org.login)}</option>`).join("");
+        select.innerHTML = data.organizations.map(owner => `<option value="${escapeHtml(owner.login)}">${escapeHtml(owner.login)}${owner.kind === "user" ? " (personal)" : ""}</option>`).join("");
         const preferred = data.organizations.find(org => org.login === data.selectedOwner)
           ?? data.organizations.find(org => org.login === "github")
           ?? data.organizations[0];
-        if (!preferred) throw new Error("The signed-in GitHub account does not expose any organizations.");
+        if (!preferred) throw new Error("The signed-in GitHub account does not expose any repository owners.");
         select.value = preferred.login;
+        currentOwner = preferred.login;
+        currentOwnerKind = preferred.kind ?? "organization";
         personalRepoKeys = new Set(data.personalRepos.map(reference => repoKey(reference.owner, reference.name)));
         if (personalRepoKeys.size) {
           await loadPersonalData({ blank: true });
@@ -2619,7 +2572,7 @@ FORM: Ambient command display with direct-action drill-down.
         }
       } catch (error) {
         console.error(error);
-        showError("GitHub organizations could not be loaded. Showing the built-in github organization demo.");
+        showError("GitHub accounts and organizations could not be loaded. Showing the built-in github organization demo.");
         document.getElementById("org-select").innerHTML = `<option value="github">github</option>`;
         activeRepoScope = "organization";
         renderDashboard();

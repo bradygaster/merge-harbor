@@ -18,7 +18,7 @@ Prerequisites:
 4. Return to **Browse**, select that marketplace, and find **merge-harbor**.
 5. Install and enable the plugin.
 6. Reload extensions if prompted, start a new session, and ask Copilot to open **Merge Harbor**.
-7. Select an organization or open **My repos**. Merge Harbor reads only repositories and pull requests visible to the account authenticated in `gh`.
+7. Select your personal account, an organization, or open **My repos**. Merge Harbor reads only repositories and pull requests visible to the account authenticated in `gh`.
 
 The marketplace catalog is `.github/plugin/marketplace.json`. It installs the repository-root Agent Plugin described by `plugin.json`. The app discovers the canvas at `com.github.copilot/extensions/merge-harbor/`; that entrypoint forwards to the existing `extension/` implementation rather than maintaining a second runtime.
 
@@ -67,10 +67,10 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 
 ## Capabilities
 
-- Select any GitHub organization visible to the authenticated account
-- Search the full organization repository inventory as you type
-- Save repositories from multiple organizations into My repos
-- Persist organization and personal-list preferences
+- Select the authenticated personal account or any visible GitHub organization
+- Search the full selected-owner repository inventory as you type
+- Save repositories from multiple owners into My repos
+- Persist selected-owner and personal-list preferences
 - View mutually exclusive Blocked, Review, Drafts, Checks, Ready, and Other queues
 - Open actionable pull requests and GitHub queue searches directly
 - Automatically refresh live telemetry

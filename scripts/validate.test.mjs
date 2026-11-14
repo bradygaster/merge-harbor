@@ -50,6 +50,48 @@ try {
 
     marketplace.plugins[0].source = ".";
     writeFileSync(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`, "utf8");
+
+    const extensionPath = join(fixtureRoot, "extension", "extension.mjs");
+    const extensionSource = readFileSync(extensionPath, "utf8");
+    writeFileSync(
+        extensionPath,
+        extensionSource.replace("repositoryOwner(login:$login)", "organization(login:$login)"),
+        "utf8",
+    );
+    expectResult(
+        "missing personal owner catalog",
+        runValidation(fixtureRoot),
+        1,
+        "Repository catalogs must support the signed-in user",
+    );
+
+    writeFileSync(
+        extensionPath,
+        extensionSource.replace(
+            "repositories(first:100, affiliations:[OWNER]",
+            "repositories(first:100",
+        ),
+        "utf8",
+    );
+    expectResult(
+        "personal catalog includes collaborator repositories",
+        runValidation(fixtureRoot),
+        1,
+        "Repository catalogs must support the signed-in user",
+    );
+    writeFileSync(extensionPath, extensionSource, "utf8");
+
+    const htmlPath = join(fixtureRoot, "extension", "merge-harbor.html");
+    const html = readFileSync(htmlPath, "utf8");
+    writeFileSync(htmlPath, html.replace("</style>", ".repo-state { display: block; }</style>"), "utf8");
+    expectResult(
+        "restored repository status badge",
+        runValidation(fixtureRoot),
+        1,
+        "Repository rows must not render the removed status badge column",
+    );
+    writeFileSync(htmlPath, html, "utf8");
+
     rmSync(join(fixtureRoot, "extension", "assets", "merge-harbor-captain.png"));
     expectResult(
         "missing packaged canvas asset",

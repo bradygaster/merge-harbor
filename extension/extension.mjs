@@ -84,11 +84,22 @@ async function listOrganizations() {
         viewer: { login: viewer.login, avatarUrl: viewer.avatar_url },
         selectedOwner: preferences.selectedOwner,
         personalRepos: preferences.myRepos,
-        organizations: organizations.map((org) => ({
-            login: org.login,
-            avatarUrl: org.avatar_url,
-            description: org.description ?? "",
-        })),
+        organizations: [
+            {
+                login: viewer.login,
+                name: viewer.name ?? viewer.login,
+                avatarUrl: viewer.avatar_url,
+                description: viewer.bio ?? "",
+                kind: "user",
+            },
+            ...organizations.map((org) => ({
+                login: org.login,
+                name: org.login,
+                avatarUrl: org.avatar_url,
+                description: org.description ?? "",
+                kind: "organization",
+            })),
+        ],
     };
 }
 
@@ -238,29 +249,44 @@ async function mapLimit(items, limit, mapper) {
     return results;
 }
 
-async function loadOrganizationCatalog(login) {
+async function loadOwnerCatalog(login) {
     const cached = catalogCache.get(login.toLowerCase());
     if (cached && Date.now() - cached.loadedAt < catalogCacheTtlMs) {
         return cached.value;
     }
     const query = `query($login:String!) {
-      organization(login:$login) {
-        login name avatarUrl
-        repositories(first:100, orderBy:{field:PUSHED_AT,direction:DESC}) {
-          totalCount
-          nodes {
-            name url description pushedAt
-            pullRequests(states:OPEN) { totalCount }
+      repositoryOwner(login:$login) {
+        __typename
+        login avatarUrl
+        ... on User {
+          name
+          repositories(first:100, affiliations:[OWNER], orderBy:{field:PUSHED_AT,direction:DESC}) {
+            totalCount
+            nodes {
+              name url description pushedAt
+              pullRequests(states:OPEN) { totalCount }
+            }
+          }
+        }
+        ... on Organization {
+          name
+          repositories(first:100, orderBy:{field:PUSHED_AT,direction:DESC}) {
+            totalCount
+            nodes {
+              name url description pushedAt
+              pullRequests(states:OPEN) { totalCount }
+            }
           }
         }
       }
     }`;
     const result = await ghApi(["graphql", "-f", `query=${query}`, "-F", `login=${login}`]);
-    const organization = result.data?.organization;
-    if (!organization) throw new Error(`Organization "${login}" is not accessible.`);
-    const repos = organization.repositories.nodes
+    const account = result.data?.repositoryOwner;
+    if (!account) throw new Error(`GitHub owner "${login}" is not accessible.`);
+    const kind = account.__typename === "User" ? "user" : "organization";
+    const repos = account.repositories.nodes
         .map((repo) => ({
-            owner: organization.login,
+            owner: account.login,
             name: repo.name,
             url: repo.url,
             description: repo.description ?? "",
@@ -270,24 +296,26 @@ async function loadOrganizationCatalog(login) {
         .sort((a, b) => b.prs - a.prs || a.name.localeCompare(b.name));
     const value = {
         owner: {
-            login: organization.login,
-            name: organization.name ?? organization.login,
-            avatarUrl: organization.avatarUrl,
+            login: account.login,
+            name: account.name ?? account.login,
+            avatarUrl: account.avatarUrl,
+            kind,
         },
         repos,
-        organizationRepositoryCount: organization.repositories.totalCount,
+        organizationRepositoryCount: account.repositories.totalCount,
     };
     catalogCache.set(login.toLowerCase(), { loadedAt: Date.now(), value });
     return value;
 }
 
-async function searchOrganizationRepositories(login, searchText, { offset = 0, limit = 5 } = {}) {
+async function searchOwnerRepositories(owner, searchText, { offset = 0, limit = 5 } = {}) {
     const targetCount = Math.min(1000, offset + limit);
     const repositories = [];
     let repositoryCount = 0;
     let cursor;
     let hasNextPage = true;
-    const searchQuery = `org:${login} ${searchText.trim()} in:name,description`;
+    const ownerQualifier = owner.kind === "user" ? "user" : "org";
+    const searchQuery = `${ownerQualifier}:${owner.login} ${searchText.trim()} in:name,description`;
     const query = `query($q:String!, $first:Int!, $after:String) {
       search(query:$q, type:REPOSITORY, first:$first, after:$after) {
         repositoryCount
@@ -308,10 +336,10 @@ async function searchOrganizationRepositories(login, searchText, { offset = 0, l
         if (cursor) args.push("-F", `after=${cursor}`);
         const result = await ghApi(args);
         const search = result.data?.search;
-        if (!search) throw new Error(`Repositories in "${login}" could not be searched.`);
+        if (!search) throw new Error(`Repositories owned by "${owner.login}" could not be searched.`);
         repositoryCount = Math.min(search.repositoryCount, 1000);
         repositories.push(...search.nodes
-            .filter((repo) => repo?.owner?.login?.toLowerCase() === login.toLowerCase())
+            .filter((repo) => repo?.owner?.login?.toLowerCase() === owner.login.toLowerCase())
             .map((repo) => ({
                 owner: repo.owner.login,
                 name: repo.name,
@@ -430,10 +458,10 @@ async function enrichRepositories(owner, repos) {
 }
 
 async function loadOrganization(login, { offset = 0, limit = 20, query = "" } = {}) {
-    const catalog = await loadOrganizationCatalog(login);
+    const catalog = await loadOwnerCatalog(login);
     const normalizedQuery = query.trim().toLowerCase();
     const searchPage = normalizedQuery
-        ? await searchOrganizationRepositories(catalog.owner.login, normalizedQuery, {
+        ? await searchOwnerRepositories(catalog.owner, normalizedQuery, {
             offset,
             limit: Math.min(limit, 5),
         })

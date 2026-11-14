@@ -9,6 +9,8 @@
 - Kept issue publication, pull requests, pushes, and all other remote writes outside the assessment workflow
 - Defaulted assessments to static read-only inspection; repository code execution now requires separate approval and a secrets-free, network-restricted sandbox
 - Added bounded recovery for interrupted in-progress missions so stale work cannot block retries
+- Restored the signed-in personal account in the repository-owner selector with user-specific search, queue, and source links
+- Removed the redundant repository status badge column while retaining full lifecycle telemetry
 
 ## 0.2.0 - 2026-11-13
 
