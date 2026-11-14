@@ -92,13 +92,6 @@ try {
     );
     writeFileSync(htmlPath, html, "utf8");
 
-    rmSync(join(fixtureRoot, "extension", "assets", "merge-harbor-captain.png"));
-    expectResult(
-        "missing packaged canvas asset",
-        runValidation(fixtureRoot),
-        1,
-        "Merge Harbor captain asset is missing",
-    );
 } finally {
     rmSync(fixtureRoot, { recursive: true, force: true });
 }

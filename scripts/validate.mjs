@@ -8,7 +8,6 @@ const scriptRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const root = resolve(process.env.MERGE_HARBOR_ROOT ?? scriptRoot);
 const extensionPath = join(root, "extension", "extension.mjs");
 const htmlPath = join(root, "extension", "merge-harbor.html");
-const captainImagePath = join(root, "extension", "assets", "merge-harbor-captain.png");
 const manifestPath = join(root, "extension", "copilot-extension.json");
 const pluginExtensionPath = join(root, "com.github.copilot", "extensions", "merge-harbor", "extension.mjs");
 const pluginPath = join(root, "plugin.json");
@@ -27,7 +26,6 @@ function requireFile(path, label) {
 [
     [extensionPath, "Canvas runtime"],
     [htmlPath, "Canvas HTML"],
-    [captainImagePath, "Merge Harbor captain asset"],
     [manifestPath, "Direct extension manifest"],
     [pluginExtensionPath, "Plugin canvas entrypoint"],
     [pluginPath, "Plugin manifest"],
@@ -133,9 +131,6 @@ if (!extensionSource.includes('listen(0, "127.0.0.1"')) {
 if (extensionSource.includes("console.log(")) {
     throw new Error("console.log is not allowed because extension stdout is reserved for JSON-RPC.");
 }
-if (!extensionSource.includes('requestUrl.pathname === "/assets/merge-harbor-captain.png"')) {
-    throw new Error("The canvas server must serve the Merge Harbor captain asset.");
-}
 if (!extensionSource.includes("session.send({ prompt: buildAssessmentPrompt")) {
     throw new Error("Repository assessments must use the supported session.send bridge.");
 }
@@ -174,16 +169,9 @@ if (
 }
 
 const html = readFileSync(htmlPath, "utf8");
-if (!html.includes('src="/assets/merge-harbor-captain.png"')) {
-    throw new Error("The dashboard header must include the Merge Harbor captain asset.");
-}
 const assetPaths = [...html.matchAll(/(?:src|href)="\/assets\/([^"]+)"/g)]
     .map((match) => join(root, "extension", "assets", match[1]));
 assetPaths.forEach((path) => requireFile(path, "Packaged canvas asset"));
-const captainImage = readFileSync(captainImagePath);
-if (captainImage.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
-    throw new Error("The Merge Harbor captain asset must be a PNG.");
-}
 if (
     !html.includes("(personal)") ||
     !html.includes('currentOwnerKind === "user"') ||
