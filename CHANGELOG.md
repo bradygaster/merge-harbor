@@ -7,6 +7,8 @@
 - Added a globally unique callback tool for Copilot-coordinated specialist assessments
 - Added dependency-free tests for mission persistence, idempotency, safety prompts, callback updates, and malformed results
 - Kept issue publication, pull requests, pushes, and all other remote writes outside the assessment workflow
+- Defaulted assessments to static read-only inspection; repository code execution now requires separate approval and a secrets-free, network-restricted sandbox
+- Added bounded recovery for interrupted in-progress missions so stale work cannot block retries
 
 ## 0.2.0 - 2026-11-13
 

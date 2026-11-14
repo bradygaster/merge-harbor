@@ -147,12 +147,23 @@ if (!extensionSource.includes('name: "merge_harbor_report_repository_assessment"
     "Never use or modify the user's existing checkout",
     "Disable pushing",
     "no pushes, issue creation, pull request creation, label changes",
+    "Default to static, read-only inspection",
+    "Do not run repository tests, builds, scripts, hooks, package installs",
+    "it is not execution isolation",
+    "separate explicit user approval",
+    "real isolated sandbox with secrets removed and outbound network access restricted",
     "Nothing may be published automatically",
 ].forEach((clause) => {
     if (!assessmentCoreSource.includes(clause)) {
         throw new Error(`Assessment prompt safety clause is missing: ${clause}`);
     }
 });
+if (!extensionSource.includes('candidate.status === "queued"') && !extensionSource.includes('mission.status === "queued"')) {
+    throw new Error("Queued assessment missions must be safely requeued after extension startup.");
+}
+if (!extensionSource.includes("recoverInterruptedMissions(missionStore)")) {
+    throw new Error("Interrupted in-progress missions must be recovered after a bounded timeout.");
+}
 
 const html = readFileSync(htmlPath, "utf8");
 if (!html.includes('src="/assets/merge-harbor-captain.png"')) {

@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 
 import { join } from "node:path";
 
 const activeStatuses = new Set(["queued", "in_progress"]);
+export const assessmentInterruptionTimeoutMs = 30 * 60 * 1000;
 const severities = new Set(["critical", "high", "medium", "low"]);
 const confidences = new Set(["high", "medium", "low"]);
 
@@ -45,11 +46,34 @@ Non-negotiable safety boundaries:
 - Create and use a Copilot-managed isolated local clone or disposable worktree at the exact target commit. Never use or modify the user's existing checkout.
 - Disable pushing in the assessment clone/worktree. Do not configure or use credentials for remote writes.
 - Prohibit every remote write: no pushes, issue creation, pull request creation, label changes, comments, releases, workflow dispatches, repository settings changes, or code publication.
-- Agents may inspect files, run tests, and experiment only inside disposable local worktrees. Clean up disposable worktrees when the assessment is complete.
+- Default to static, read-only inspection. Do not run repository tests, builds, scripts, hooks, package installs, package-manager commands, or any executable repository code.
+- A local clone or worktree provides filesystem separation only; it is not execution isolation.
+- If executing repository code is necessary, stop and request a separate explicit user approval. Execution may proceed only after that approval and only inside a real isolated sandbox with secrets removed and outbound network access restricted.
+- Clean up disposable local clones and worktrees when the assessment is complete.
 - Use a bounded temporary specialist team of at most three specialists, only where their scopes are distinct. Do not start organization-wide, cross-repository, remediation, or publication work.
 - Consolidate duplicate symptoms into root causes. Report evidence, dependencies, severity, confidence, and reviewable draft issue title/body. Nothing may be published automatically.
 
 Use the globally registered merge_harbor_report_repository_assessment tool to report progress and the final structured findings for mission ${mission.id}. Report failures through the same tool.`;
+}
+
+export function recoverInterruptedMissions(store, {
+    nowMs = Date.now(),
+    staleAfterMs = assessmentInterruptionTimeoutMs,
+} = {}) {
+    const recovered = [];
+    for (const mission of store.list()) {
+        if (mission.status !== "in_progress") continue;
+        const updatedAtMs = Date.parse(mission.updatedAt);
+        const ageMs = nowMs - updatedAtMs;
+        if (Number.isFinite(updatedAtMs) && ageMs >= 0 && ageMs < staleAfterMs) continue;
+        recovered.push(store.update(mission.id, {
+            status: "failed",
+            phase: "Assessment interrupted",
+            message: "The assessment stopped before results were reported. Select Assess repository to retry safely.",
+            findings: [],
+        }));
+    }
+    return recovered;
 }
 
 export function validateMissionUpdate(value) {

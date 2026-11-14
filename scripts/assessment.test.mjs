@@ -6,6 +6,7 @@ import {
     buildAssessmentPrompt,
     createMissionStore,
     normalizeRepositoryIdentity,
+    recoverInterruptedMissions,
     validateMissionUpdate,
 } from "../extension/assessment-core.mjs";
 
@@ -81,6 +82,11 @@ try {
         "Never use or modify the user's existing checkout",
         "Disable pushing",
         "no pushes, issue creation, pull request creation, label changes",
+        "Default to static, read-only inspection",
+        "Do not run repository tests, builds, scripts, hooks, package installs",
+        "filesystem separation only; it is not execution isolation",
+        "separate explicit user approval",
+        "real isolated sandbox with secrets removed and outbound network access restricted",
         "at most three specialists",
         "Nothing may be published automatically",
         "merge_harbor_report_repository_assessment",
@@ -122,6 +128,76 @@ try {
         () => validateMissionUpdate({ missionId: "x", status: "published", message: "No." }),
         "status must be",
     );
+
+    let recoveryClock = "2026-11-13T18:00:00.000Z";
+    let recoveryId = 0;
+    const recoveryStore = createMissionStore(join(directory, "recovery"), {
+        now: () => recoveryClock,
+        idFactory: () => `recovery-mission-${++recoveryId}`,
+    });
+    const interrupted = recoveryStore.create({
+        owner: "octodemo",
+        name: "interrupted-repo",
+        key: "octodemo/interrupted-repo",
+        defaultBranch: "main",
+        targetSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    recoveryStore.update(interrupted.id, {
+        status: "in_progress",
+        phase: "Inspecting repository",
+        message: "Repository assessment in progress",
+    });
+    recoveryClock = "2026-11-13T18:31:00.000Z";
+    const recovered = recoverInterruptedMissions(recoveryStore, {
+        nowMs: Date.parse(recoveryClock),
+        staleAfterMs: 30 * 60 * 1000,
+    });
+    assert(recovered.length === 1, "A stale in-progress mission must be recovered after the bounded timeout.");
+    assert(recovered[0].status === "failed", "Interrupted missions must stop blocking future assessments.");
+    assert(recovered[0].message.includes("Assess repository"), "Interrupted mission copy must provide a clear retry action.");
+    const retry = await beginAssessment({
+        body: { owner: "octodemo", name: "interrupted-repo" },
+        store: recoveryStore,
+        resolveRepository: async (owner, name) => ({
+            owner,
+            name,
+            defaultBranch: "main",
+            targetSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        }),
+    });
+    assert(retry.statusCode === 202 && retry.body.mission.id !== interrupted.id,
+        "A recovered mission must allow a new assessment attempt.");
+
+    const queued = recoveryStore.create({
+        owner: "octodemo",
+        name: "queued-repo",
+        key: "octodemo/queued-repo",
+        defaultBranch: "main",
+        targetSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    recoveryClock = "2026-11-13T20:00:00.000Z";
+    recoverInterruptedMissions(recoveryStore, {
+        nowMs: Date.parse(recoveryClock),
+        staleAfterMs: 30 * 60 * 1000,
+    });
+    assert(recoveryStore.read(queued.id).status === "queued",
+        "Queued missions must remain available for safe startup requeue.");
+
+    const malformedTimestamp = recoveryStore.create({
+        owner: "octodemo",
+        name: "malformed-time-repo",
+        key: "octodemo/malformed-time-repo",
+        defaultBranch: "main",
+        targetSha: "cccccccccccccccccccccccccccccccccccccccc",
+    });
+    recoveryClock = "not-a-timestamp";
+    recoveryStore.update(malformedTimestamp.id, { status: "in_progress" });
+    recoverInterruptedMissions(recoveryStore, {
+        nowMs: Date.parse("2026-11-13T20:00:00.000Z"),
+        staleAfterMs: 30 * 60 * 1000,
+    });
+    assert(recoveryStore.read(malformedTimestamp.id).status === "failed",
+        "Malformed durable timestamps must fail safe instead of blocking assessments indefinitely.");
 
     console.info("Repository assessment persistence, endpoint, prompt, callback, and malformed-result tests passed.");
 } finally {

@@ -9,6 +9,8 @@ import {
     beginAssessment,
     buildAssessmentPrompt,
     createMissionStore,
+    assessmentInterruptionTimeoutMs,
+    recoverInterruptedMissions,
     validateMissionUpdate,
 } from "./assessment-core.mjs";
 
@@ -25,6 +27,7 @@ const catalogCache = new Map();
 const catalogCacheTtlMs = 5 * 60 * 1000;
 const repositoryTelemetryCache = new Map();
 const repositoryTelemetryCacheTtlMs = 5 * 60 * 1000;
+const missionTimeouts = new Map();
 
 function readPreferences() {
     let preferences;
@@ -577,6 +580,30 @@ function publicMission(mission) {
     };
 }
 
+function clearMissionTimeout(missionId) {
+    const timer = missionTimeouts.get(missionId);
+    if (timer) clearTimeout(timer);
+    missionTimeouts.delete(missionId);
+}
+
+function scheduleMissionTimeout(mission) {
+    clearMissionTimeout(mission.id);
+    if (mission.status !== "in_progress") return;
+    const updatedAtMs = Date.parse(mission.updatedAt);
+    const remaining = Number.isFinite(updatedAtMs)
+        ? Math.max(0, assessmentInterruptionTimeoutMs - (Date.now() - updatedAtMs))
+        : 0;
+    const timer = setTimeout(() => {
+        missionTimeouts.delete(mission.id);
+        const recovered = recoverInterruptedMissions(missionStore);
+        for (const interrupted of recovered) {
+            broadcastAll("mission", publicMission(interrupted));
+        }
+    }, remaining);
+    timer.unref?.();
+    missionTimeouts.set(mission.id, timer);
+}
+
 async function dispatchAssessment(mission) {
     try {
         const inProgress = missionStore.update(mission.id, {
@@ -584,6 +611,7 @@ async function dispatchAssessment(mission) {
             phase: "Coordinating specialists",
             message: "Repository assessment in progress",
         });
+        scheduleMissionTimeout(inProgress);
         broadcastAll("mission", publicMission(inProgress));
         await session.send({ prompt: buildAssessmentPrompt(inProgress) });
     } catch (error) {
@@ -592,6 +620,7 @@ async function dispatchAssessment(mission) {
             phase: "Assessment could not start",
             message: `Copilot could not start the assessment: ${error.message}`,
         });
+        clearMissionTimeout(failed.id);
         broadcastAll("mission", publicMission(failed));
     }
 }
@@ -827,6 +856,7 @@ const session = await joinSession({
                         message: update.message,
                         findings: update.findings,
                     });
+                    scheduleMissionTimeout(mission);
                     broadcastAll("mission", publicMission(mission));
                     return `Merge Harbor mission ${mission.id} updated to ${mission.status}.`;
                 } catch (error) {
@@ -916,6 +946,11 @@ const session = await joinSession({
     ],
 });
 
-for (const mission of missionStore.list().filter((candidate) => candidate.status === "queued")) {
-    setTimeout(() => dispatchAssessment(mission), 0);
+recoverInterruptedMissions(missionStore);
+for (const mission of missionStore.list()) {
+    if (mission.status === "queued") {
+        setTimeout(() => dispatchAssessment(mission), 0);
+    } else {
+        scheduleMissionTimeout(mission);
+    }
 }

@@ -2,7 +2,7 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
-Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
+Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. Assessments default to static, read-only inspection and never run repository tests, builds, scripts, hooks, package installs, package-manager commands, or executable repository code. A clone or worktree is filesystem separation, not execution isolation. Any execution requires separate explicit user approval and a real isolated sandbox with secrets removed and outbound network access restricted. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
 
 ## Install from the marketplace
 
@@ -77,6 +77,7 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Switch between list and card layouts
 - Start one isolated local assessment from a repository or attention entry
 - Track assessment progress across extension reloads
+- Recover interrupted assessments after a bounded timeout so users can retry
 - Review evidence-backed root causes, dependencies, severity, confidence, and draft issue text
 
 ## Security and data
@@ -85,7 +86,8 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - GitHub data is read through the locally authenticated `gh` CLI.
 - The extension does not require an external service or send preferences to a Merge Harbor backend.
 - Repository access is limited to what the authenticated GitHub account can access.
-- Assessment missions prohibit remote writes and use disposable local worktrees coordinated by the current Copilot session.
+- Assessment missions prohibit remote writes and default to static inspection in disposable local clones or worktrees coordinated by the current Copilot session.
+- Repository code execution is blocked unless the user separately approves it and a secrets-free, network-restricted sandbox is available.
 - Findings remain drafts. **Create selected issues** is intentionally unavailable until a separate explicit user-approved publishing action is implemented.
 
 ## Compatibility

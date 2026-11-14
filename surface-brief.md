@@ -21,8 +21,10 @@
 | Watchtower screen | Semantic HTML/CSS | Semaphore stack plus ranked action queue |
 | Motion | CSS | One slow tide/current movement only |
 | Source data | Inline JavaScript | Current public open-PR totals; illustrative states labeled |
-| Repository assessments | Loopback HTTP + SDK session bridge | One click creates a durable mission and delegates a bounded isolated local assessment |
+| Repository assessments | Loopback HTTP + SDK session bridge | One click creates a durable mission and delegates bounded static, read-only inspection in an isolated local clone |
 | Assessment review | Semantic HTML/CSS | Root causes, evidence, dependencies, severity, confidence, and draft issue text; publishing remains disabled |
+| Execution boundary | Prompt contract + mission state | Repository code never runs without separate approval and a secrets-free, network-restricted sandbox |
+| Interruption recovery | Durable timestamps + bounded timer | Stale in-progress missions fail with a clear retry action instead of blocking future assessments |
 
 ## Deliberate translation from comp
 
