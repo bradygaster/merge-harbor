@@ -944,7 +944,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .repo-collection.list-view .repo-entry {
       display: grid;
-      grid-template-columns: minmax(180px, 0.9fr) minmax(300px, 1.4fr) 86px 92px 124px;
+      grid-template-columns: minmax(180px, 0.9fr) minmax(300px, 1.4fr) 86px 92px minmax(150px, 180px);
       grid-template-areas:
         "title track count state action"
         "updated track count state action";
@@ -996,17 +996,22 @@ FORM: Ambient command display with direct-action drill-down.
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
     }
-    .repo-collection.card-view .repo-personal-button {
+    .repo-collection.card-view .repo-actions {
       width: 100%;
-      min-height: 44px;
       align-self: end;
     }
+    .repo-collection.card-view .repo-actions button { min-height: 44px; }
     .repo-entry-title {
       min-width: 0;
       grid-area: title;
     }
-    .repo-personal-button {
+    .repo-actions {
       grid-area: action;
+      display: grid;
+      gap: 6px;
+      align-self: center;
+    }
+    .repo-action-button {
       min-height: 36px;
       align-self: center;
       padding: 6px 10px;
@@ -1018,12 +1023,145 @@ FORM: Ambient command display with direct-action drill-down.
       white-space: normal;
       cursor: pointer;
     }
-    .repo-personal-button:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
-    .repo-personal-button[aria-pressed="true"] {
+    .repo-action-button:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .repo-action-button.primary {
+      border-color: var(--border-color-accent-emphasis, var(--cp-accent));
+      background: var(--background-color-accent-emphasis, var(--cp-accent));
+      color: var(--text-color-on-emphasis, var(--cp-accent-fg));
+    }
+    .repo-action-button.primary:hover { background: var(--background-color-accent-emphasis, var(--cp-accent-hover)); }
+    .repo-action-button[aria-pressed="true"] {
       border-color: var(--border-color-success, var(--cp-success));
       color: var(--text-color-success, var(--cp-success));
     }
-    .repo-personal-button:disabled { color: var(--text-color-disabled, var(--cp-text-muted)); cursor: wait; }
+    .repo-action-button:disabled {
+      border-color: var(--border-color-default, var(--cp-border));
+      background: var(--background-color-disabled, var(--cp-surface-soft));
+      color: var(--text-color-disabled, var(--cp-text-muted));
+      cursor: wait;
+    }
+    .mission-center {
+      display: none;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-muted, var(--cp-surface-soft));
+    }
+    .mission-center.visible { display: block; }
+    .mission-center-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .mission-center-head h2 { margin: 0; font-size: var(--text-title-small, 16px); }
+    .mission-center-head p {
+      max-width: 70ch;
+      margin: 3px 0 0;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .mission-list { display: grid; gap: 10px; }
+    .mission-card {
+      padding: 14px 16px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .mission-summary {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.3fr) auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .mission-repository strong,
+    .mission-progress strong { display: block; }
+    .mission-repository span,
+    .mission-progress span {
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .mission-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .mission-status::before {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      content: "";
+    }
+    .mission-status.in_progress,
+    .mission-status.queued { color: var(--text-color-accent, var(--cp-link)); }
+    .mission-status.completed { color: var(--text-color-success, var(--cp-success)); }
+    .mission-status.failed { color: var(--text-color-danger, var(--cp-danger)); }
+    .mission-review {
+      margin-top: 12px;
+      border-top: 1px solid var(--border-color-muted, var(--cp-border));
+      padding-top: 12px;
+    }
+    .mission-review summary {
+      width: fit-content;
+      color: var(--text-color-link, var(--cp-link));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .finding-list { display: grid; gap: 12px; margin-top: 12px; }
+    .finding {
+      padding: 12px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+    }
+    .finding-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .finding-head h3 { margin: 0; font-size: var(--text-body-medium, 14px); }
+    .finding-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+    .finding-badge {
+      padding: 1px 7px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-full, 999px);
+      font-size: var(--text-body-small, 12px);
+      text-transform: capitalize;
+    }
+    .finding h4 { margin: 12px 0 4px; font-size: var(--text-body-small, 12px); }
+    .finding ul { margin: 0; padding-left: 20px; }
+    .finding pre {
+      max-height: 240px;
+      margin: 6px 0 0;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid var(--border-color-muted, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      white-space: pre-wrap;
+      font: var(--text-code-block, 12px)/1.5 var(--font-mono, Consolas, monospace);
+    }
+    .finding-actions { margin-top: 12px; }
+    .finding-actions button {
+      min-height: 36px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+    }
+    .mission-spinner {
+      display: inline-block;
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-color-default, var(--cp-border));
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+      vertical-align: -2px;
+    }
     .repo-entry-title a {
       color: var(--text-color-link, var(--cp-link));
       font-size: var(--text-title-small, 16px);
@@ -1372,7 +1510,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .ambient-action {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
       gap: 10px;
       align-items: center;
       min-height: 54px;
@@ -1380,7 +1518,6 @@ FORM: Ambient command display with direct-action drill-down.
       border: 1px solid var(--border-color-default, var(--cp-border));
       border-radius: var(--radius-medium, 6px);
       color: var(--text-color-default, var(--cp-text));
-      text-decoration: none;
     }
     .ambient-action:hover { background: var(--background-color-hover, var(--cp-surface-soft)); }
     .ambient-action-rank {
@@ -1410,6 +1547,21 @@ FORM: Ambient command display with direct-action drill-down.
       font-weight: var(--font-weight-semibold, 600);
       white-space: nowrap;
     }
+    .attention-assess,
+    .ambient-assess {
+      min-height: 36px;
+      padding: 6px 10px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .attention-assess:hover,
+    .ambient-assess:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .attention-assess:disabled,
+    .ambient-assess:disabled { color: var(--text-color-disabled, var(--cp-text-muted)); cursor: wait; }
     .flow-board {
       display: grid;
       grid-template-columns: repeat(3, minmax(240px, 1fr));
@@ -1467,7 +1619,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .watchtower { display: block; min-height: 0; }
     .attention-board { max-width: 1240px; margin: 0 auto; }
-    .attention-row { grid-template-columns: 52px minmax(220px, 1.5fr) minmax(220px, 1fr) 120px 94px; }
+    .attention-row { grid-template-columns: 52px minmax(220px, 1.5fr) minmax(220px, 1fr) 120px 94px 150px; }
     .attention-open {
       min-height: 36px;
       display: inline-flex;
@@ -1610,7 +1762,8 @@ FORM: Ambient command display with direct-action drill-down.
           "updated updated"
           "action action";
       }
-      .repo-personal-button { min-height: 44px; width: 100%; }
+      .repo-actions { width: 100%; }
+      .repo-action-button { min-height: 44px; width: 100%; }
       .repo-collection.list-view .repo-telemetry {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -1626,8 +1779,11 @@ FORM: Ambient command display with direct-action drill-down.
       .distribution-legend { width: 100%; }
       .flow-board { grid-template-columns: 1fr; padding: 14px; }
       .attention-row { grid-template-columns: 40px minmax(0, 1fr); padding: 14px; }
-      .attention-action, .attention-age, .attention-open { grid-column: 2; text-align: left; }
-      .attention-open { min-height: 44px; }
+      .attention-action, .attention-age, .attention-open, .attention-assess { grid-column: 2; text-align: left; }
+      .attention-open, .attention-assess { min-height: 44px; }
+      .mission-center { padding: 14px 16px; }
+      .mission-center-head, .finding-head { flex-direction: column; }
+      .mission-summary { grid-template-columns: 1fr; gap: 8px; }
       .attention-head { align-items: flex-start; gap: 8px; }
       .footer { padding: 12px 16px; align-items: flex-start; flex-direction: column; }
       .repo-empty { margin: 14px; padding: 24px 16px; }
@@ -1702,6 +1858,15 @@ FORM: Ambient command display with direct-action drill-down.
             <button type="button" class="repo-scope-tab" data-repo-scope="personal" role="tab" aria-selected="false">My repos <span class="repo-scope-count" id="personal-repo-count">0</span></button>
             <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true">Organization repos <span class="repo-scope-count" id="organization-repo-count">20</span></button>
           </div>
+          <section id="mission-center" class="mission-center" aria-live="polite">
+            <div class="mission-center-head">
+              <div>
+                <h2>Repository assessments</h2>
+                <p>Assessments run in isolated local worktrees and return reviewable findings only. Merge Harbor never publishes issues or code.</p>
+              </div>
+            </div>
+            <div id="mission-list" class="mission-list"></div>
+          </section>
           <div class="repo-scope-caption" id="repo-scope-caption">Showing the selected organization</div>
         </div>
         <div class="ambient-overview">
@@ -1818,6 +1983,8 @@ FORM: Ambient command display with direct-action drill-down.
     let currentOwner = "github";
     let refreshTimer;
     let overviewLayout = "list";
+    const missionsById = new Map();
+    const latestMissionByRepository = new Map();
     const states = ["waiting","flowing","blocked","flowing","merging","flowing","waiting","blocked","flowing","merging","flowing","waiting","merging","flowing","blocked","flowing","waiting","merging","flowing","blocked"];
     const stateLabel = { flowing:"clear", waiting:"waiting", blocked:"blocked", merging:"ready", unknown:"unknown" };
 
@@ -1890,6 +2057,126 @@ FORM: Ambient command display with direct-action drill-down.
       return `${owner.toLowerCase()}/${name.toLowerCase()}`;
     }
 
+    function latestMission(owner, name) {
+      return latestMissionByRepository.get(repoKey(owner, name));
+    }
+
+    function assessmentButton(owner, name, className = "repo-action-button primary") {
+      const mission = latestMission(owner, name);
+      if (mission?.status === "queued" || mission?.status === "in_progress") {
+        return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Repository assessment in progress</button>`;
+      }
+      if (mission?.status === "completed") {
+        return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}">Review findings</button>`;
+      }
+      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}">Assess repository</button>`;
+    }
+
+    function ingestMission(mission) {
+      if (!mission?.id || !mission.repository?.key) return;
+      missionsById.set(mission.id, mission);
+      const current = latestMissionByRepository.get(mission.repository.key);
+      if (!current || String(mission.updatedAt).localeCompare(String(current.updatedAt)) >= 0) {
+        latestMissionByRepository.set(mission.repository.key, mission);
+      }
+    }
+
+    function renderMissionCenter() {
+      const missions = [...missionsById.values()]
+        .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+        .slice(0, 8);
+      const center = document.getElementById("mission-center");
+      center.classList.toggle("visible", missions.length > 0);
+      document.getElementById("mission-list").innerHTML = missions.map(mission => {
+        const statusLabel = mission.status === "in_progress" || mission.status === "queued"
+          ? "Repository assessment in progress"
+          : mission.status === "completed"
+            ? "Assessment complete"
+            : "Assessment failed";
+        const findings = Array.isArray(mission.findings) ? mission.findings : [];
+        const review = mission.status === "completed"
+          ? `<details class="mission-review" id="mission-review-${escapeHtml(mission.id)}">
+              <summary>Review findings (${findings.length})</summary>
+              <div class="finding-list">
+                ${findings.length ? findings.map((finding, index) => `
+                  <article class="finding">
+                    <div class="finding-head">
+                      <h3>${index + 1}. ${escapeHtml(finding.rootCause)}</h3>
+                      <div class="finding-badges">
+                        <span class="finding-badge">${escapeHtml(finding.severity)} severity</span>
+                        <span class="finding-badge">${escapeHtml(finding.confidence)} confidence</span>
+                      </div>
+                    </div>
+                    <h4>Evidence</h4>
+                    <ul>${finding.evidence.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+                    <h4>Dependencies</h4>
+                    ${finding.dependencies?.length ? `<ul>${finding.dependencies.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<span>No known dependencies.</span>`}
+                    <h4>Draft issue</h4>
+                    <strong>${escapeHtml(finding.draftIssue.title)}</strong>
+                    <pre>${escapeHtml(finding.draftIssue.body)}</pre>
+                  </article>`).join("") : `<div class="repo-empty"><h2>No root causes reported</h2><p>The assessment completed without a reviewable issue draft.</p></div>`}
+              </div>
+              <div class="finding-actions">
+                <button type="button" disabled title="Issue creation requires a separate future user-approved action">Create selected issues</button>
+                <span> Issue publication is not included in this release.</span>
+              </div>
+            </details>`
+          : "";
+        return `<article class="mission-card" data-mission-id="${escapeHtml(mission.id)}">
+          <div class="mission-summary">
+            <div class="mission-repository">
+              <strong>${escapeHtml(mission.repository.owner)}/${escapeHtml(mission.repository.name)}</strong>
+              <span>${escapeHtml(mission.repository.defaultBranch)} @ ${escapeHtml(mission.repository.targetSha.slice(0, 12))}</span>
+            </div>
+            <div class="mission-progress">
+              <strong class="mission-status ${escapeHtml(mission.status)}">${statusLabel}</strong>
+              <span>${escapeHtml(mission.phase || mission.message)}</span>
+            </div>
+            <time datetime="${escapeHtml(mission.updatedAt)}">${new Date(mission.updatedAt).toLocaleTimeString()}</time>
+          </div>
+          ${mission.message && mission.message !== statusLabel ? `<p>${escapeHtml(mission.message)}</p>` : ""}
+          ${review}
+        </article>`;
+      }).join("");
+    }
+
+    function renderMissionState() {
+      renderMissionCenter();
+      renderDashboard();
+    }
+
+    async function startAssessment(button) {
+      const owner = button.dataset.assessOwner;
+      const name = button.dataset.assessName;
+      button.disabled = true;
+      button.innerHTML = `<span class="mission-spinner" aria-hidden="true"></span> Starting assessment…`;
+      showError();
+      try {
+        const response = await fetch("/api/assessments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ owner, name }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "The repository assessment could not start.");
+        ingestMission(data.mission);
+        renderMissionState();
+      } catch (error) {
+        console.error(error);
+        showError(`Could not assess ${owner}/${name}. ${error.message}`);
+        button.disabled = false;
+        button.textContent = "Assess repository";
+      }
+    }
+
+    function reviewMission(missionId) {
+      const review = document.getElementById(`mission-review-${missionId}`);
+      if (!review) return;
+      review.open = true;
+      review.scrollIntoView({ behavior: "smooth", block: "start" });
+      review.querySelector("summary")?.focus();
+    }
+
     function berth(repo, index) {
       const state = stateFor(repo, index);
       const positions = [18, 38, 63, 78];
@@ -1957,7 +2244,10 @@ FORM: Ambient command display with direct-action drill-down.
           <div class="repo-count" data-help="Live open pull request total">${repo.prs.toLocaleString()}<span>open PRs</span></div>
           <span class="repo-state ${state}" data-help="${escapeHtml(repoStateDetail(repo, state))}">${stateLabel[state]}</span>
           <time class="repo-updated" datetime="${repo.pushedAt || ""}" data-help="Most recent repository push activity">${updated}</time>
-          <button type="button" class="repo-personal-button" data-personal-owner="${escapeHtml(owner)}" data-personal-name="${escapeHtml(repo.name)}" aria-pressed="${isPersonal}" data-help="${isPersonal ? "Remove this repository from My repos" : "Add this repository to My repos"}">${isPersonal ? "Remove from My repos" : "Add to My repos"}</button>
+          <div class="repo-actions">
+            ${assessmentButton(owner, repo.name)}
+            <button type="button" class="repo-action-button" data-personal-owner="${escapeHtml(owner)}" data-personal-name="${escapeHtml(repo.name)}" aria-pressed="${isPersonal}" data-help="${isPersonal ? "Remove this repository from My repos" : "Add this repository to My repos"}">${isPersonal ? "Remove from My repos" : "Add to My repos"}</button>
+          </div>
         </article>`;
     }
 
@@ -1975,6 +2265,8 @@ FORM: Ambient command display with direct-action drill-down.
           action: `${repo.signal.reason} · ${repo.signal.action}`,
           age: repo.signal.ageDays === 0 ? "active today" : `${repo.signal.ageDays}d since update`,
           url: repo.signal.url,
+          owner: repo.owner || currentOwner,
+          name: repo.name,
         }));
       if (realSignals.length) return realSignals;
       const candidates = [0, 2, 7, Math.max(0, repos.length - 1)];
@@ -1988,7 +2280,9 @@ FORM: Ambient command display with direct-action drill-down.
         repo: repos[repoIndex]?.name ?? "No repository",
         issue: messages[index][0],
         action: messages[index][1],
-        age: messages[index][2]
+        age: messages[index][2],
+        owner: repos[repoIndex]?.owner || currentOwner,
+        name: repos[repoIndex]?.name,
       }));
     }
 
@@ -2036,11 +2330,12 @@ FORM: Ambient command display with direct-action drill-down.
         : `<div class="distribution-empty">No open pull requests in the displayed repositories.</div>`;
 
       document.getElementById("ambient-actions").innerHTML = watch.slice(0, 3).map((item, index) => `
-        <a class="ambient-action" href="${item.url || "#"}" ${item.url ? 'target="_blank" rel="noreferrer"' : ""} data-help="Open priority ${index + 1}: ${escapeHtml(item.action)}">
+        <article class="ambient-action" data-help="Priority ${index + 1}: ${escapeHtml(item.action)}">
           <span class="ambient-action-rank">${index + 1}</span>
           <span class="ambient-action-copy"><strong>${escapeHtml(item.repo)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}</span></span>
-          <span class="ambient-action-open">${item.url ? "Open PR" : "Details"}</span>
-        </a>`).join("");
+          ${item.url ? `<a class="ambient-action-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="ambient-action-open">Details</span>`}
+          ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess") : ""}
+        </article>`).join("");
 
       const flowStages = [
         { key: "blocked", label: "Blocked" },
@@ -2071,6 +2366,7 @@ FORM: Ambient command display with direct-action drill-down.
           <div class="attention-action"><strong>${escapeHtml(item.action)}</strong><span>Recommended intervention</span></div>
           <div class="attention-age">${item.age}</div>
           ${item.url ? `<a class="attention-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
+          ${item.name ? assessmentButton(item.owner, item.name, "attention-assess") : ""}
         </article>`).join("");
       updateRepoScopeUi();
     }
@@ -2364,6 +2660,25 @@ FORM: Ambient command display with direct-action drill-down.
     document.getElementById("repo-collection").addEventListener("click", event => {
       const button = event.target.closest("[data-personal-owner]");
       if (button) togglePersonalRepository(button);
+    });
+
+    document.addEventListener("click", event => {
+      const assessButton = event.target.closest("[data-assess-owner]");
+      if (assessButton) {
+        startAssessment(assessButton);
+        return;
+      }
+      const reviewButton = event.target.closest("[data-review-mission]");
+      if (reviewButton) reviewMission(reviewButton.dataset.reviewMission);
+    });
+
+    window.addEventListener("merge-harbor:missions", event => {
+      (event.detail?.missions || []).forEach(ingestMission);
+      renderMissionState();
+    });
+    window.addEventListener("merge-harbor:mission", event => {
+      ingestMission(event.detail);
+      renderMissionState();
     });
 
     document.getElementById("org-select").addEventListener("change", async () => {

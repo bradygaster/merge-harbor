@@ -1,0 +1,199 @@
+import { randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const activeStatuses = new Set(["queued", "in_progress"]);
+const severities = new Set(["critical", "high", "medium", "low"]);
+const confidences = new Set(["high", "medium", "low"]);
+
+function isRecord(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cleanString(value, maximum = 4000) {
+    return typeof value === "string" ? value.trim().slice(0, maximum) : "";
+}
+
+function cleanStringList(value, maximumItems = 20, maximumLength = 1000) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((item) => cleanString(item, maximumLength))
+        .filter(Boolean)
+        .slice(0, maximumItems);
+}
+
+export function normalizeRepositoryIdentity(value) {
+    if (!isRecord(value)) {
+        throw new Error("Repository owner and name are required.");
+    }
+    const owner = cleanString(value.owner, 100);
+    const name = cleanString(value.name, 100);
+    const componentPattern = /^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,98}[A-Za-z0-9])?$/;
+    if (!componentPattern.test(owner) || !componentPattern.test(name) || name.endsWith(".git")) {
+        throw new Error("Repository owner and name must form a valid GitHub repository identity.");
+    }
+    return { owner, name, key: `${owner.toLowerCase()}/${name.toLowerCase()}` };
+}
+
+export function buildAssessmentPrompt(mission) {
+    return `Coordinate a conservative, read-only repository assessment for ${mission.repository.owner}/${mission.repository.name}.
+
+Mission ID: ${mission.id}
+Target: ${mission.repository.defaultBranch} at exact commit ${mission.repository.targetSha}
+
+Non-negotiable safety boundaries:
+- Create and use a Copilot-managed isolated local clone or disposable worktree at the exact target commit. Never use or modify the user's existing checkout.
+- Disable pushing in the assessment clone/worktree. Do not configure or use credentials for remote writes.
+- Prohibit every remote write: no pushes, issue creation, pull request creation, label changes, comments, releases, workflow dispatches, repository settings changes, or code publication.
+- Agents may inspect files, run tests, and experiment only inside disposable local worktrees. Clean up disposable worktrees when the assessment is complete.
+- Use a bounded temporary specialist team of at most three specialists, only where their scopes are distinct. Do not start organization-wide, cross-repository, remediation, or publication work.
+- Consolidate duplicate symptoms into root causes. Report evidence, dependencies, severity, confidence, and reviewable draft issue title/body. Nothing may be published automatically.
+
+Use the globally registered merge_harbor_report_repository_assessment tool to report progress and the final structured findings for mission ${mission.id}. Report failures through the same tool.`;
+}
+
+export function validateMissionUpdate(value) {
+    if (!isRecord(value)) throw new Error("Mission update must be an object.");
+    const missionId = cleanString(value.missionId, 120);
+    const status = cleanString(value.status, 40);
+    if (!missionId) throw new Error("missionId is required.");
+    if (!["in_progress", "completed", "failed"].includes(status)) {
+        throw new Error("status must be in_progress, completed, or failed.");
+    }
+    const phase = cleanString(value.phase, 120);
+    const message = cleanString(value.message, 2000);
+    if (!message) throw new Error("message is required.");
+    const findings = status === "completed"
+        ? validateFindings(value.findings)
+        : [];
+    return { missionId, status, phase, message, findings };
+}
+
+export function validateFindings(value) {
+    if (!Array.isArray(value)) throw new Error("Completed missions require a findings array.");
+    return value.map((finding, index) => {
+        if (!isRecord(finding)) throw new Error(`Finding ${index + 1} must be an object.`);
+        const rootCause = cleanString(finding.rootCause, 500);
+        const severity = cleanString(finding.severity, 20).toLowerCase();
+        const confidence = cleanString(finding.confidence, 20).toLowerCase();
+        const evidence = cleanStringList(finding.evidence, 20, 2000);
+        const dependencies = cleanStringList(finding.dependencies, 20, 500);
+        const draftIssue = isRecord(finding.draftIssue) ? finding.draftIssue : {};
+        const title = cleanString(draftIssue.title, 256);
+        const body = cleanString(draftIssue.body, 12000);
+        if (!rootCause || !severities.has(severity) || !confidences.has(confidence)) {
+            throw new Error(`Finding ${index + 1} requires rootCause, severity, and confidence.`);
+        }
+        if (!evidence.length) throw new Error(`Finding ${index + 1} requires evidence.`);
+        if (!title || !body) throw new Error(`Finding ${index + 1} requires a draft issue title and body.`);
+        return { rootCause, severity, confidence, evidence, dependencies, draftIssue: { title, body } };
+    }).slice(0, 50);
+}
+
+export function createMissionStore(directory, {
+    now = () => new Date().toISOString(),
+    idFactory = () => randomUUID(),
+} = {}) {
+    const missionDirectory = join(directory, "missions");
+
+    function missionPath(id) {
+        return join(missionDirectory, `${id}.json`);
+    }
+
+    function write(mission) {
+        mkdirSync(missionDirectory, { recursive: true });
+        const path = missionPath(mission.id);
+        const temporaryPath = `${path}.${process.pid}.tmp`;
+        writeFileSync(temporaryPath, `${JSON.stringify(mission, null, 2)}\n`, "utf8");
+        renameSync(temporaryPath, path);
+        return mission;
+    }
+
+    function read(id) {
+        try {
+            const value = JSON.parse(readFileSync(missionPath(id), "utf8"));
+            return isRecord(value) ? value : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    function list() {
+        let names;
+        try {
+            names = readdirSync(missionDirectory);
+        } catch {
+            return [];
+        }
+        return names
+            .filter((name) => name.endsWith(".json"))
+            .map((name) => read(name.slice(0, -5)))
+            .filter(Boolean)
+            .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    }
+
+    function findActive(repositoryKey, targetSha) {
+        return list().find((mission) =>
+            mission.repository?.key === repositoryKey
+            && mission.repository?.targetSha === targetSha
+            && activeStatuses.has(mission.status));
+    }
+
+    function create(repository) {
+        const timestamp = now();
+        return write({
+            id: idFactory(),
+            kind: "repository_assessment",
+            status: "queued",
+            phase: "Preparing isolated assessment",
+            message: "Repository assessment in progress",
+            repository,
+            findings: [],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+        });
+    }
+
+    function update(id, change) {
+        const current = read(id);
+        if (!current) throw new Error(`Mission ${id} was not found.`);
+        return write({ ...current, ...change, id: current.id, updatedAt: now() });
+    }
+
+    return { create, findActive, list, read, update };
+}
+
+export async function beginAssessment({ body, store, resolveRepository }) {
+    let identity;
+    try {
+        identity = normalizeRepositoryIdentity(body);
+    } catch (error) {
+        return { statusCode: 400, body: { error: error.message } };
+    }
+
+    let repository;
+    try {
+        repository = await resolveRepository(identity.owner, identity.name);
+    } catch (error) {
+        return { statusCode: 502, body: { error: error.message } };
+    }
+    if (!repository?.defaultBranch || !repository?.targetSha) {
+        return { statusCode: 422, body: { error: "The repository does not expose a readable default branch commit." } };
+    }
+
+    const normalizedRepository = {
+        owner: repository.owner ?? identity.owner,
+        name: repository.name ?? identity.name,
+        key: identity.key,
+        url: repository.url,
+        defaultBranch: repository.defaultBranch,
+        targetSha: repository.targetSha,
+        viewerPermission: repository.viewerPermission,
+    };
+    const existing = store.findActive(identity.key, repository.targetSha);
+    if (existing) {
+        return { statusCode: 200, body: { mission: existing, duplicate: true } };
+    }
+    const mission = store.create(normalizedRepository);
+    return { statusCode: 202, body: { mission, duplicate: false } };
+}

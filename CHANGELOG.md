@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-11-13
+
+- Added one-click, read-only repository assessments from repository and attention views
+- Added durable mission state, live SSE progress, and structured reviewable findings
+- Added a globally unique callback tool for Copilot-coordinated specialist assessments
+- Added dependency-free tests for mission persistence, idempotency, safety prompts, callback updates, and malformed results
+- Kept issue publication, pull requests, pushes, and all other remote writes outside the assessment workflow
+
 ## 0.2.0 - 2026-11-13
 
 - Added an Agent Plugins 1.0 manifest and GitHub-hosted marketplace catalog

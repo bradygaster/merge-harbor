@@ -2,9 +2,9 @@
 
 - **Scope:** `merge-harbor.html`, a self-contained concept artifact for a large shared engineering display.
 - **Mode:** Operate.
-- **Audience and job:** Enterprise engineering teams using coding agents; understand merge health at a glance and find the next human intervention.
+- **Audience and job:** Enterprise engineering teams using coding agents; understand merge health at a glance, find the next human intervention, and safely request a review-only assessment of one repository.
 - **Content:** Twenty public repositories from the `github` organization, current open pull-request totals, and clearly labeled illustrative operational states.
-- **Constraints:** Wall-distance legibility, no color-only state, reduced-motion support, calm urgency, no fabricated benchmarks.
+- **Constraints:** Wall-distance legibility, no color-only state, reduced-motion support, calm urgency, no fabricated benchmarks, and no remote writes from repository assessments.
 - **Direction:** Harbor Signal Room. Repositories are berths, pull requests are vessels, and one central merge lock makes system flow visible.
 - **Approved composition:** Harbor Panorama, informed by the generated comp at `.impeccable/mocks/harbor-panorama.png`.
 - **Memorable moment:** Twenty repository lanes visibly converge on one shared merge lock.
@@ -21,6 +21,8 @@
 | Watchtower screen | Semantic HTML/CSS | Semaphore stack plus ranked action queue |
 | Motion | CSS | One slow tide/current movement only |
 | Source data | Inline JavaScript | Current public open-PR totals; illustrative states labeled |
+| Repository assessments | Loopback HTTP + SDK session bridge | One click creates a durable mission and delegates a bounded isolated local assessment |
+| Assessment review | Semantic HTML/CSS | Root causes, evidence, dependencies, severity, confidence, and draft issue text; publishing remains disabled |
 
 ## Deliberate translation from comp
 

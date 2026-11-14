@@ -2,6 +2,8 @@
 
 Merge Harbor is a user-level GitHub Copilot canvas for ambient visibility into pull request flow across large engineering organizations. It combines organization-wide repository search, personal cross-organization repository lists, lifecycle telemetry, and direct links to pull requests requiring action.
 
+Merge Harbor also provides a conservative one-click **Assess repository** action. It creates a durable mission, asks the current Copilot session to coordinate up to three bounded specialists in an isolated disposable local clone or worktree at the exact default-branch commit, and returns reviewable root causes and draft issue text. Assessments never push, publish code, create issues or pull requests, change labels, or modify the user's existing checkout.
+
 ## Install from the marketplace
 
 Prerequisites:
@@ -73,6 +75,9 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - Open actionable pull requests and GitHub queue searches directly
 - Automatically refresh live telemetry
 - Switch between list and card layouts
+- Start one isolated local assessment from a repository or attention entry
+- Track assessment progress across extension reloads
+- Review evidence-backed root causes, dependencies, severity, confidence, and draft issue text
 
 ## Security and data
 
@@ -80,10 +85,12 @@ That file stores the selected organization and **My repos** list. Auto-refresh s
 - GitHub data is read through the locally authenticated `gh` CLI.
 - The extension does not require an external service or send preferences to a Merge Harbor backend.
 - Repository access is limited to what the authenticated GitHub account can access.
+- Assessment missions prohibit remote writes and use disposable local worktrees coordinated by the current Copilot session.
+- Findings remain drafts. **Create selected issues** is intentionally unavailable until a separate explicit user-approved publishing action is implemented.
 
 ## Compatibility
 
-- Plugin release version: `0.2.0`
+- Plugin release version: `0.3.0`
 - Extension manifest format version: `1`
 - App build used for runtime smoke: `1.4.0`
 - Plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
@@ -113,6 +120,7 @@ Run the dependency-free validation:
 ```shell
 node scripts/validate.mjs
 node scripts/validate.test.mjs
+node scripts/assessment.test.mjs
 ```
 
 For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.

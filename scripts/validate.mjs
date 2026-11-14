@@ -15,6 +15,8 @@ const pluginPath = join(root, "plugin.json");
 const marketplacePath = join(root, ".github", "plugin", "marketplace.json");
 const readmePath = join(root, "README.md");
 const changelogPath = join(root, "CHANGELOG.md");
+const assessmentCorePath = join(root, "extension", "assessment-core.mjs");
+const assessmentTestPath = join(root, "scripts", "assessment.test.mjs");
 
 function requireFile(path, label) {
     if (!existsSync(path)) {
@@ -32,6 +34,8 @@ function requireFile(path, label) {
     [marketplacePath, "Marketplace catalog"],
     [readmePath, "README"],
     [changelogPath, "Changelog"],
+    [assessmentCorePath, "Assessment mission core"],
+    [assessmentTestPath, "Assessment mission tests"],
 ].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -122,6 +126,7 @@ if (pluginSyntax.status !== 0) {
 }
 
 const extensionSource = readFileSync(extensionPath, "utf8");
+const assessmentCoreSource = readFileSync(assessmentCorePath, "utf8");
 if (!extensionSource.includes('listen(0, "127.0.0.1"')) {
     throw new Error("The canvas server must bind to an ephemeral loopback port.");
 }
@@ -131,6 +136,23 @@ if (extensionSource.includes("console.log(")) {
 if (!extensionSource.includes('requestUrl.pathname === "/assets/merge-harbor-captain.png"')) {
     throw new Error("The canvas server must serve the Merge Harbor captain asset.");
 }
+if (!extensionSource.includes("session.send({ prompt: buildAssessmentPrompt")) {
+    throw new Error("Repository assessments must use the supported session.send bridge.");
+}
+if (!extensionSource.includes('name: "merge_harbor_report_repository_assessment"')) {
+    throw new Error("Repository assessments must expose the globally unique callback tool.");
+}
+[
+    "isolated local clone or disposable worktree",
+    "Never use or modify the user's existing checkout",
+    "Disable pushing",
+    "no pushes, issue creation, pull request creation, label changes",
+    "Nothing may be published automatically",
+].forEach((clause) => {
+    if (!assessmentCoreSource.includes(clause)) {
+        throw new Error(`Assessment prompt safety clause is missing: ${clause}`);
+    }
+});
 
 const html = readFileSync(htmlPath, "utf8");
 if (!html.includes('src="/assets/merge-harbor-captain.png"')) {
@@ -150,5 +172,11 @@ if (!scripts.length) {
 scripts.forEach((match, index) => {
     new vm.Script(match[1], { filename: `merge-harbor-inline-${index + 1}.js` });
 });
+const assessmentTest = spawnSync(process.execPath, [assessmentTestPath], {
+    encoding: "utf8",
+});
+if (assessmentTest.status !== 0) {
+    throw new Error(assessmentTest.stderr || assessmentTest.stdout || "assessment.test.mjs failed.");
+}
 
 console.info(`Merge Harbor plugin ${plugin.version} and extension manifest ${manifest.version} validation passed.`);
