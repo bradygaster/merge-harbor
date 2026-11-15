@@ -1,0 +1,32 @@
+{
+  "name": "merge-harbor",
+  "owner": {
+    "name": "Brady Gaster"
+  },
+  "metadata": {
+    "description": "Merge Harbor customizations for GitHub Copilot.",
+    "version": "0.3.0"
+  },
+  "plugins": [
+    {
+      "name": "merge-harbor",
+      "description": "Ambient pull request operations and safe repository assessments for GitHub Copilot.",
+      "version": "0.3.0",
+      "author": {
+        "name": "Brady Gaster",
+        "url": "https://github.com/bradygaster"
+      },
+      "homepage": "https://github.com/bradygaster/merge-harbor",
+      "repository": "https://github.com/bradygaster/merge-harbor",
+      "license": "MIT",
+      "keywords": [
+        "canvas",
+        "github",
+        "merge-operations",
+        "pull-requests",
+        "repository-assessment"
+      ],
+      "source": "."
+    }
+  ]
+}

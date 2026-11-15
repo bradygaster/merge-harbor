@@ -5,6 +5,16 @@ import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createCanvas, joinSession } from "@github/copilot-sdk/extension";
+import {
+    assessmentFindingIdentity,
+    beginAssessment,
+    buildAssessmentPrompt,
+    createAssessmentIssue,
+    createMissionStore,
+    assessmentInterruptionTimeoutMs,
+    recoverInterruptedMissions,
+    validateMissionUpdate,
+} from "./assessment-core.mjs";
 
 const servers = new Map();
 const execFileAsync = promisify(execFile);
@@ -13,10 +23,13 @@ const legacyPreferencesUrl = new URL("./preferences.json", import.meta.url);
 const copilotHome = process.env.COPILOT_HOME ?? join(homedir(), ".copilot");
 const preferencesDirectory = join(copilotHome, "extensions", "merge-harbor", "artifacts");
 const preferencesPath = join(preferencesDirectory, "preferences.json");
+const missionStore = createMissionStore(preferencesDirectory);
 const catalogCache = new Map();
 const catalogCacheTtlMs = 5 * 60 * 1000;
 const repositoryTelemetryCache = new Map();
 const repositoryTelemetryCacheTtlMs = 5 * 60 * 1000;
+const missionTimeouts = new Map();
+const issueCreationPromises = new Map();
 
 function readPreferences() {
     let preferences;
@@ -63,6 +76,56 @@ async function ghApi(args) {
     return JSON.parse(stdout);
 }
 
+function ghFailureMessage(error) {
+    const message = typeof error?.stderr === "string" ? error.stderr.trim() : "";
+    return message ? message.slice(0, 1000) : "The authenticated GitHub CLI request failed.";
+}
+
+async function findExistingAssessmentIssue({ mission, marker }) {
+    try {
+        const query = `repo:${mission.repository.owner}/${mission.repository.name} is:issue in:body ${marker}`;
+        const result = await ghApi([
+            "--method", "GET",
+            "search/issues",
+            "--raw-field", `q=${query}`,
+            "--raw-field", "per_page=10",
+        ]);
+        const issue = result.items?.find((candidate) => candidate.body?.includes(`<!-- ${marker} -->`));
+        return issue ? { number: issue.number, url: issue.html_url } : undefined;
+    } catch (error) {
+        throw new Error(ghFailureMessage(error));
+    }
+}
+
+async function publishAssessmentIssue({ mission, finding, marker }) {
+    try {
+        const repositoryPath = `repos/${encodeURIComponent(mission.repository.owner)}/${encodeURIComponent(mission.repository.name)}/issues`;
+        const issue = await ghApi([
+            "--method", "POST",
+            repositoryPath,
+            "--raw-field", `title=${finding.draftIssue.title}`,
+            "--raw-field", `body=${finding.draftIssue.body}\n\n<!-- ${marker} -->`,
+        ]);
+        return { number: issue.number, url: issue.html_url };
+    } catch (error) {
+        throw new Error(ghFailureMessage(error));
+    }
+}
+
+function createAssessmentIssueOnce(body) {
+    const key = `${body?.missionId ?? ""}:${body?.findingIndex ?? ""}:${body?.findingIdentity ?? ""}`;
+    const pending = issueCreationPromises.get(key);
+    if (pending) return pending;
+    const promise = createAssessmentIssue({
+        body,
+        store: missionStore,
+        findExistingIssue: findExistingAssessmentIssue,
+        createIssue: publishAssessmentIssue,
+    }).finally(() => issueCreationPromises.delete(key));
+    issueCreationPromises.set(key, promise);
+    return promise;
+}
+
 async function listOrganizations() {
     const preferences = readPreferences();
     const [viewer, organizations] = await Promise.all([
@@ -73,11 +136,48 @@ async function listOrganizations() {
         viewer: { login: viewer.login, avatarUrl: viewer.avatar_url },
         selectedOwner: preferences.selectedOwner,
         personalRepos: preferences.myRepos,
-        organizations: organizations.map((org) => ({
-            login: org.login,
-            avatarUrl: org.avatar_url,
-            description: org.description ?? "",
-        })),
+        organizations: [
+            {
+                login: viewer.login,
+                name: viewer.name ?? viewer.login,
+                avatarUrl: viewer.avatar_url,
+                description: viewer.bio ?? "",
+                kind: "user",
+            },
+            ...organizations.map((org) => ({
+                login: org.login,
+                name: org.login,
+                avatarUrl: org.avatar_url,
+                description: org.description ?? "",
+                kind: "organization",
+            })),
+        ],
+    };
+}
+
+async function resolveAssessmentRepository(owner, name) {
+    const query = `query($owner:String!, $name:String!) {
+      repository(owner:$owner, name:$name) {
+        name url viewerPermission
+        owner { login }
+        defaultBranchRef { name target { oid } }
+      }
+    }`;
+    const result = await ghApi([
+        "graphql",
+        "-f", `query=${query}`,
+        "-F", `owner=${owner}`,
+        "-F", `name=${name}`,
+    ]);
+    const repository = result.data?.repository;
+    if (!repository) throw new Error(`Repository "${owner}/${name}" is not accessible.`);
+    return {
+        owner: repository.owner.login,
+        name: repository.name,
+        url: repository.url,
+        viewerPermission: repository.viewerPermission,
+        defaultBranch: repository.defaultBranchRef?.name,
+        targetSha: repository.defaultBranchRef?.target?.oid,
     };
 }
 
@@ -201,29 +301,44 @@ async function mapLimit(items, limit, mapper) {
     return results;
 }
 
-async function loadOrganizationCatalog(login) {
+async function loadOwnerCatalog(login) {
     const cached = catalogCache.get(login.toLowerCase());
     if (cached && Date.now() - cached.loadedAt < catalogCacheTtlMs) {
         return cached.value;
     }
     const query = `query($login:String!) {
-      organization(login:$login) {
-        login name avatarUrl
-        repositories(first:100, orderBy:{field:PUSHED_AT,direction:DESC}) {
-          totalCount
-          nodes {
-            name url description pushedAt
-            pullRequests(states:OPEN) { totalCount }
+      repositoryOwner(login:$login) {
+        __typename
+        login avatarUrl
+        ... on User {
+          name
+          repositories(first:100, affiliations:[OWNER], orderBy:{field:PUSHED_AT,direction:DESC}) {
+            totalCount
+            nodes {
+              name url description pushedAt
+              pullRequests(states:OPEN) { totalCount }
+            }
+          }
+        }
+        ... on Organization {
+          name
+          repositories(first:100, orderBy:{field:PUSHED_AT,direction:DESC}) {
+            totalCount
+            nodes {
+              name url description pushedAt
+              pullRequests(states:OPEN) { totalCount }
+            }
           }
         }
       }
     }`;
     const result = await ghApi(["graphql", "-f", `query=${query}`, "-F", `login=${login}`]);
-    const organization = result.data?.organization;
-    if (!organization) throw new Error(`Organization "${login}" is not accessible.`);
-    const repos = organization.repositories.nodes
+    const account = result.data?.repositoryOwner;
+    if (!account) throw new Error(`GitHub owner "${login}" is not accessible.`);
+    const kind = account.__typename === "User" ? "user" : "organization";
+    const repos = account.repositories.nodes
         .map((repo) => ({
-            owner: organization.login,
+            owner: account.login,
             name: repo.name,
             url: repo.url,
             description: repo.description ?? "",
@@ -233,24 +348,26 @@ async function loadOrganizationCatalog(login) {
         .sort((a, b) => b.prs - a.prs || a.name.localeCompare(b.name));
     const value = {
         owner: {
-            login: organization.login,
-            name: organization.name ?? organization.login,
-            avatarUrl: organization.avatarUrl,
+            login: account.login,
+            name: account.name ?? account.login,
+            avatarUrl: account.avatarUrl,
+            kind,
         },
         repos,
-        organizationRepositoryCount: organization.repositories.totalCount,
+        organizationRepositoryCount: account.repositories.totalCount,
     };
     catalogCache.set(login.toLowerCase(), { loadedAt: Date.now(), value });
     return value;
 }
 
-async function searchOrganizationRepositories(login, searchText, { offset = 0, limit = 5 } = {}) {
+async function searchOwnerRepositories(owner, searchText, { offset = 0, limit = 5 } = {}) {
     const targetCount = Math.min(1000, offset + limit);
     const repositories = [];
     let repositoryCount = 0;
     let cursor;
     let hasNextPage = true;
-    const searchQuery = `org:${login} ${searchText.trim()} in:name,description`;
+    const ownerQualifier = owner.kind === "user" ? "user" : "org";
+    const searchQuery = `${ownerQualifier}:${owner.login} ${searchText.trim()} in:name,description`;
     const query = `query($q:String!, $first:Int!, $after:String) {
       search(query:$q, type:REPOSITORY, first:$first, after:$after) {
         repositoryCount
@@ -271,10 +388,10 @@ async function searchOrganizationRepositories(login, searchText, { offset = 0, l
         if (cursor) args.push("-F", `after=${cursor}`);
         const result = await ghApi(args);
         const search = result.data?.search;
-        if (!search) throw new Error(`Repositories in "${login}" could not be searched.`);
+        if (!search) throw new Error(`Repositories owned by "${owner.login}" could not be searched.`);
         repositoryCount = Math.min(search.repositoryCount, 1000);
         repositories.push(...search.nodes
-            .filter((repo) => repo?.owner?.login?.toLowerCase() === login.toLowerCase())
+            .filter((repo) => repo?.owner?.login?.toLowerCase() === owner.login.toLowerCase())
             .map((repo) => ({
                 owner: repo.owner.login,
                 name: repo.name,
@@ -393,10 +510,10 @@ async function enrichRepositories(owner, repos) {
 }
 
 async function loadOrganization(login, { offset = 0, limit = 20, query = "" } = {}) {
-    const catalog = await loadOrganizationCatalog(login);
+    const catalog = await loadOwnerCatalog(login);
     const normalizedQuery = query.trim().toLowerCase();
     const searchPage = normalizedQuery
-        ? await searchOrganizationRepositories(catalog.owner.login, normalizedQuery, {
+        ? await searchOwnerRepositories(catalog.owner, normalizedQuery, {
             offset,
             limit: Math.min(limit, 5),
         })
@@ -509,6 +626,8 @@ function renderHtml(defaultView) {
     activate(${JSON.stringify(defaultView)});
     const events = new EventSource("/events");
     events.addEventListener("view", (event) => activate(JSON.parse(event.data).view));
+    events.addEventListener("missions", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:missions", { detail: JSON.parse(event.data) })));
+    events.addEventListener("mission", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:mission", { detail: JSON.parse(event.data) })));
   })();
 </script>`;
     return prototypeHtml.replace("</body>", `${bridge}</body>`);
@@ -518,6 +637,74 @@ function broadcast(entry, event, payload) {
     const message = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
     for (const response of entry.clients) {
         response.write(message);
+    }
+}
+
+function broadcastAll(event, payload) {
+    for (const entry of servers.values()) {
+        broadcast(entry, event, payload);
+    }
+}
+
+function publicMission(mission) {
+    if (!mission) return undefined;
+    return {
+        id: mission.id,
+        status: mission.status,
+        phase: mission.phase,
+        message: mission.message,
+        repository: mission.repository,
+        findings: (mission.findings ?? []).map((finding, findingIndex) => ({
+            ...finding,
+            identity: assessmentFindingIdentity(mission, findingIndex),
+        })),
+        createdAt: mission.createdAt,
+        updatedAt: mission.updatedAt,
+    };
+}
+
+function clearMissionTimeout(missionId) {
+    const timer = missionTimeouts.get(missionId);
+    if (timer) clearTimeout(timer);
+    missionTimeouts.delete(missionId);
+}
+
+function scheduleMissionTimeout(mission) {
+    clearMissionTimeout(mission.id);
+    if (mission.status !== "in_progress") return;
+    const updatedAtMs = Date.parse(mission.updatedAt);
+    const remaining = Number.isFinite(updatedAtMs)
+        ? Math.max(0, assessmentInterruptionTimeoutMs - (Date.now() - updatedAtMs))
+        : 0;
+    const timer = setTimeout(() => {
+        missionTimeouts.delete(mission.id);
+        const recovered = recoverInterruptedMissions(missionStore);
+        for (const interrupted of recovered) {
+            broadcastAll("mission", publicMission(interrupted));
+        }
+    }, remaining);
+    timer.unref?.();
+    missionTimeouts.set(mission.id, timer);
+}
+
+async function dispatchAssessment(mission) {
+    try {
+        const inProgress = missionStore.update(mission.id, {
+            status: "in_progress",
+            phase: "Coordinating specialists",
+            message: "Repository assessment in progress",
+        });
+        scheduleMissionTimeout(inProgress);
+        broadcastAll("mission", publicMission(inProgress));
+        await session.send({ prompt: buildAssessmentPrompt(inProgress) });
+    } catch (error) {
+        const failed = missionStore.update(mission.id, {
+            status: "failed",
+            phase: "Assessment could not start",
+            message: `Copilot could not start the assessment: ${error.message}`,
+        });
+        clearMissionTimeout(failed.id);
+        broadcastAll("mission", publicMission(failed));
     }
 }
 
@@ -539,6 +726,7 @@ async function startServer(instanceId, defaultView) {
                 Connection: "keep-alive",
             });
             res.write(`event: view\ndata: ${JSON.stringify({ view: entry.currentView })}\n\n`);
+            res.write(`event: missions\ndata: ${JSON.stringify({ missions: missionStore.list().map(publicMission) })}\n\n`);
             entry.clients.add(res);
             req.on("close", () => entry.clients.delete(res));
             return;
@@ -611,12 +799,62 @@ async function startServer(instanceId, defaultView) {
                         writeJson(res, 400, { error: "Repository owner and name are required." });
                         return;
                     }
+
                     const preferences = readPreferences();
                     const key = `${owner.toLowerCase()}/${name.toLowerCase()}`;
                     const existing = preferences.myRepos.filter((repo) => `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}` !== key);
                     const myRepos = action === "add" ? [...existing, { owner, name }] : existing;
                     writePreferences({ ...preferences, myRepos });
                     writeJson(res, 200, { myRepos });
+                })
+                .catch((error) => writeJson(res, 400, { error: error.message }));
+            return;
+        }
+
+        if (requestUrl.pathname === "/api/assessments" && req.method === "GET") {
+            const owner = requestUrl.searchParams.get("owner");
+            const name = requestUrl.searchParams.get("name");
+            let missions = missionStore.list();
+            if (owner && name) {
+                const identity = `${owner.toLowerCase()}/${name.toLowerCase()}`;
+                missions = missions.filter((mission) => mission.repository?.key === identity);
+            }
+            writeJson(res, 200, { missions: missions.map(publicMission) });
+            return;
+        }
+
+        if (requestUrl.pathname === "/api/assessments" && req.method === "POST") {
+            readJsonBody(req)
+                .then((body) => beginAssessment({
+                    body,
+                    store: missionStore,
+                    resolveRepository: resolveAssessmentRepository,
+                }))
+                .then((result) => {
+                    writeJson(res, result.statusCode, result.body);
+                    if (result.body.mission) {
+                        broadcastAll("mission", publicMission(result.body.mission));
+                        if (!result.body.duplicate) {
+                            setTimeout(() => dispatchAssessment(result.body.mission), 0);
+                        }
+                    }
+                })
+                .catch((error) => writeJson(res, 400, { error: error.message }));
+            return;
+        }
+
+        if (requestUrl.pathname === "/api/assessment-issues" && req.method === "POST") {
+            readJsonBody(req)
+                .then((body) => createAssessmentIssueOnce(body))
+                .then((result) => {
+                    const mission = result.body.mission;
+                    writeJson(res, result.statusCode, {
+                        ...result.body,
+                        mission: publicMission(mission),
+                    });
+                    if (mission && result.statusCode < 300) {
+                        broadcastAll("mission", publicMission(mission));
+                    }
                 })
                 .catch((error) => writeJson(res, 400, { error: error.message }));
             return;
@@ -650,12 +888,81 @@ async function startServer(instanceId, defaultView) {
     return entry;
 }
 
-await joinSession({
+const session = await joinSession({
+    tools: [
+        {
+            name: "merge_harbor_report_repository_assessment",
+            description: "Report progress, failure, or final structured findings for a Merge Harbor repository assessment mission.",
+            parameters: {
+                type: "object",
+                properties: {
+                    missionId: { type: "string" },
+                    status: { type: "string", enum: ["in_progress", "completed", "failed"] },
+                    phase: { type: "string" },
+                    message: { type: "string" },
+                    findings: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                rootCause: { type: "string" },
+                                severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
+                                confidence: { type: "string", enum: ["high", "medium", "low"] },
+                                evidence: { type: "array", items: { type: "string" } },
+                                dependencies: { type: "array", items: { type: "string" } },
+                                draftIssue: {
+                                    type: "object",
+                                    properties: {
+                                        title: { type: "string" },
+                                        body: { type: "string" },
+                                    },
+                                    required: ["title", "body"],
+                                    additionalProperties: false,
+                                },
+                            },
+                            required: ["rootCause", "severity", "confidence", "evidence", "draftIssue"],
+                            additionalProperties: false,
+                        },
+                    },
+                },
+                required: ["missionId", "status", "message"],
+                additionalProperties: false,
+            },
+            handler: async (args) => {
+                let update;
+                try {
+                    update = validateMissionUpdate(args);
+                    const current = missionStore.read(update.missionId);
+                    if (!current) throw new Error(`Mission ${update.missionId} was not found.`);
+                    if (current.status === "completed" || current.status === "failed") {
+                        if (current.status === update.status) {
+                            return `Mission ${current.id} is already ${current.status}.`;
+                        }
+                        throw new Error(`Mission ${current.id} is already ${current.status} and cannot be changed.`);
+                    }
+                    const mission = missionStore.update(update.missionId, {
+                        status: update.status,
+                        phase: update.phase || current.phase,
+                        message: update.message,
+                        findings: update.findings,
+                    });
+                    scheduleMissionTimeout(mission);
+                    broadcastAll("mission", publicMission(mission));
+                    return `Merge Harbor mission ${mission.id} updated to ${mission.status}.`;
+                } catch (error) {
+                    return {
+                        resultType: "failure",
+                        textResultForLlm: `Merge Harbor rejected the mission update: ${error.message}`,
+                    };
+                }
+            },
+        },
+    ],
     canvases: [
         createCanvas({
             id: "merge-harbor",
             displayName: "Merge Harbor",
-            description: "Interactive ambient merge-operations display with personal and organization repository views.",
+            description: "Ambient merge operations with personal and organization views plus safe repository assessments.",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -714,7 +1021,7 @@ await joinSession({
                 }
                 return {
                     title: "Merge Harbor",
-                    status: "Personal and organization merge operations",
+                    status: "Merge operations and safe repository assessments",
                     url: entry.url,
                 };
             },
@@ -728,3 +1035,12 @@ await joinSession({
         }),
     ],
 });
+
+recoverInterruptedMissions(missionStore);
+for (const mission of missionStore.list()) {
+    if (mission.status === "queued") {
+        setTimeout(() => dispatchAssessment(mission), 0);
+    } else {
+        scheduleMissionTimeout(mission);
+    }
+}

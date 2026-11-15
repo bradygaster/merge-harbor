@@ -16,3 +16,4 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/validate.mjs
+      - run: node scripts/validate.test.mjs
