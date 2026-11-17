@@ -254,248 +254,6 @@ FORM: Ambient command display with direct-action drill-down.
     .repo-search-pending strong {
       color: var(--text-color-default, var(--cp-text));
     }
-    .legend { display: flex; flex-wrap: wrap; gap: 16px; }
-    .legend-item { display: inline-flex; gap: 7px; align-items: center; }
-    .legend-mark {
-      width: 12px;
-      height: 12px;
-      border: 2px solid currentColor;
-    }
-    .legend-mark.flowing { color: var(--cp-success); }
-    .legend-mark.waiting { color: var(--cp-warning); border-radius: 50%; }
-    .legend-mark.blocked { color: var(--cp-danger); transform: rotate(45deg); }
-    .legend-mark.merging { color: var(--cp-accent); border-width: 5px 2px 2px; }
-
-    .harbor {
-      position: relative;
-      min-height: calc(100vh - 198px);
-      display: grid;
-      grid-template-columns: 1fr 132px 1fr;
-      border-bottom: 1px solid var(--cp-border-strong);
-      overflow: hidden;
-    }
-    .berth-bank {
-      padding: 20px 20px 26px;
-      display: grid;
-      grid-template-columns: repeat(5, minmax(100px, 1fr));
-      gap: 12px;
-      align-content: stretch;
-    }
-    .berth-bank.left { border-right: 1px solid var(--cp-border); }
-    .berth-bank.right { border-left: 1px solid var(--cp-border); }
-    .berth {
-      position: relative;
-      min-height: 208px;
-      padding: 12px 10px 10px;
-      border: 1px solid var(--cp-border);
-      border-radius: 0.625rem 0.625rem 0 0;
-      background: var(--cp-surface);
-      overflow: hidden;
-    }
-    .berth:hover { border-color: var(--cp-border-strong); }
-    .berth-head {
-      min-height: 60px;
-      display: grid;
-      align-content: start;
-      gap: 4px;
-      border-bottom: 1px solid var(--cp-border);
-    }
-    .berth-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-weight: 700;
-      font-size: 0.84rem;
-    }
-    .berth-count {
-      color: var(--cp-text-muted);
-      font-family: Consolas, "Courier New", Courier, monospace;
-      font-size: 0.73rem;
-    }
-    .lane {
-      position: relative;
-      height: calc(100% - 60px);
-      min-height: 130px;
-      border-left: 1px dashed var(--cp-border-strong);
-      border-right: 1px dashed var(--cp-border-strong);
-      margin: 0 10px;
-    }
-    .lane::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      width: 1px;
-      height: 100%;
-      background: var(--cp-border);
-    }
-    .vessel {
-      position: absolute;
-      left: 50%;
-      width: 26px;
-      height: 12px;
-      translate: -50% 0;
-      border: 2px solid currentColor;
-      background: var(--cp-surface);
-      z-index: 1;
-    }
-    .vessel::after {
-      content: "";
-      position: absolute;
-      right: -7px;
-      top: 2px;
-      border-top: 3px solid transparent;
-      border-bottom: 3px solid transparent;
-      border-left: 6px solid currentColor;
-    }
-    .vessel.flowing { color: var(--cp-success); }
-    .vessel.waiting { color: var(--cp-warning); border-style: dashed; }
-    .vessel.blocked { color: var(--cp-danger); width: 18px; transform: rotate(45deg); }
-    .vessel.blocked::after { display: none; }
-    .vessel.merging { color: var(--cp-accent); border-top-width: 5px; }
-    .signal {
-      position: absolute;
-      right: 7px;
-      bottom: 7px;
-      display: inline-flex;
-      gap: 4px;
-      align-items: center;
-      color: var(--cp-text-muted);
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .signal::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border: 2px solid currentColor;
-    }
-    .signal.blocked { color: var(--cp-danger); }
-    .signal.waiting { color: var(--cp-warning); }
-    .signal.flowing { color: var(--cp-success); }
-    .signal.merging { color: var(--cp-accent); }
-
-    .merge-lock {
-      position: relative;
-      background: var(--cp-surface-soft);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      align-items: center;
-      text-align: center;
-    }
-    .lock-title {
-      padding: 16px 8px;
-      border-bottom: 1px solid var(--cp-border);
-      font-family: Consolas, "Courier New", Courier, monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.12em;
-    }
-    .lock-channel {
-      position: relative;
-      width: 58px;
-      height: calc(100% - 34px);
-      min-height: 280px;
-      margin: 16px auto;
-      border-left: 3px double var(--cp-border-strong);
-      border-right: 3px double var(--cp-border-strong);
-    }
-    .lock-channel::before,
-    .lock-channel::after {
-      content: "";
-      position: absolute;
-      left: -16px;
-      right: -16px;
-      height: 8px;
-      border-top: 2px solid var(--cp-warning);
-      border-bottom: 2px solid var(--cp-warning);
-    }
-    .lock-channel::before { top: 16px; }
-    .lock-channel::after { bottom: 16px; }
-    .current {
-      position: absolute;
-      left: 50%;
-      top: 18%;
-      bottom: 18%;
-      width: 2px;
-      background: var(--cp-accent);
-      transform: translateX(-50%);
-    }
-    .current::after {
-      content: "";
-      position: absolute;
-      left: -5px;
-      bottom: -1px;
-      width: 10px;
-      height: 10px;
-      border-right: 2px solid var(--cp-accent);
-      border-bottom: 2px solid var(--cp-accent);
-      transform: rotate(45deg);
-    }
-    .lock-rate {
-      padding: 14px 8px;
-      border-top: 1px solid var(--cp-border);
-    }
-    .lock-rate strong {
-      display: block;
-      font-size: 2rem;
-      line-height: 1;
-    }
-    .lock-rate span { color: var(--cp-text-muted); font-size: 0.7rem; }
-
-    .watch-strip {
-      padding: 16px 28px 20px;
-      background: var(--cp-surface);
-    }
-    .watch-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .watch-title strong { font-size: 1rem; }
-    .watch-title span { color: var(--cp-text-muted); font-size: 0.78rem; }
-    .watch-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border: 1px solid var(--cp-border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    .watch-item {
-      min-height: 110px;
-      padding: 14px 16px;
-      border-right: 1px solid var(--cp-border);
-      background: var(--cp-bg-elevated);
-    }
-    .watch-item:last-child { border-right: 0; }
-    .watch-item .flag {
-      display: inline-grid;
-      place-items: center;
-      width: 28px;
-      height: 22px;
-      margin-right: 8px;
-      border: 2px solid currentColor;
-      color: var(--cp-danger);
-      font-weight: 800;
-    }
-    .watch-item h3 {
-      display: inline;
-      margin: 0;
-      font-size: 0.94rem;
-    }
-    .watch-item p {
-      margin: 10px 0 8px;
-      color: var(--cp-text);
-      font-size: 0.82rem;
-    }
-    .watch-meta {
-      display: flex;
-      justify-content: space-between;
-      color: var(--cp-text-muted);
-      font-family: Consolas, "Courier New", Courier, monospace;
-      font-size: 0.7rem;
-    }
 
     .convoy {
       padding: 22px 28px 28px;
@@ -504,69 +262,6 @@ FORM: Ambient command display with direct-action drill-down.
       gap: 0;
       min-height: calc(100vh - 198px);
     }
-    .convoy-labels,
-    .convoy-flow,
-    .convoy-actions {
-      border: 1px solid var(--cp-border);
-      background: var(--cp-surface);
-    }
-    .convoy-labels { border-radius: 16px 0 0 16px; overflow: hidden; }
-    .convoy-actions { border-radius: 0 16px 16px 0; overflow: hidden; }
-    .convoy-flow { border-left: 0; border-right: 0; }
-    .convoy-row {
-      min-height: 112px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--cp-border);
-    }
-    .convoy-row:last-child { border-bottom: 0; }
-    .convoy-label strong { display: block; margin-bottom: 5px; }
-    .convoy-label span { color: var(--cp-text-muted); font-size: 0.76rem; }
-    .flow-row {
-      position: relative;
-      min-height: 112px;
-      border-bottom: 1px solid var(--cp-border);
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-    }
-    .flow-row:last-child { border-bottom: 0; }
-    .checkpoint {
-      position: relative;
-      border-right: 1px dashed var(--cp-border);
-    }
-    .checkpoint:last-child { border-right: 0; }
-    .checkpoint-label {
-      position: absolute;
-      top: 8px;
-      left: 10px;
-      color: var(--cp-text-muted);
-      font-size: 0.66rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .flow-vessel {
-      position: absolute;
-      top: 58px;
-      width: 38px;
-      height: 15px;
-      border: 2px solid currentColor;
-      color: var(--cp-success);
-      background: var(--cp-surface);
-    }
-    .flow-vessel::after {
-      content: "";
-      position: absolute;
-      right: -9px;
-      top: 2px;
-      border-top: 4px solid transparent;
-      border-bottom: 4px solid transparent;
-      border-left: 8px solid currentColor;
-    }
-    .flow-vessel.waiting { color: var(--cp-warning); border-style: dashed; }
-    .flow-vessel.blocked { color: var(--cp-danger); }
-    .flow-vessel.merging { color: var(--cp-accent); border-top-width: 6px; }
-    .action-row strong { display: block; font-size: 1.15rem; }
-    .action-row span { color: var(--cp-text-muted); font-size: 0.72rem; }
-    .action-row p { margin: 12px 0 0; font-size: 0.78rem; }
 
     .watchtower {
       min-height: calc(100vh - 198px);
@@ -575,43 +270,7 @@ FORM: Ambient command display with direct-action drill-down.
       grid-template-columns: minmax(280px, 0.8fr) minmax(540px, 1.5fr);
       gap: 24px;
     }
-    .mast {
-      min-height: 610px;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      border: 1px solid var(--cp-border-strong);
-      border-radius: 16px;
-      background: var(--cp-surface);
-      overflow: hidden;
-    }
-    .mast-head { padding: 18px; border-bottom: 1px solid var(--cp-border); }
-    .mast-head h2 { margin: 0; font-size: 1.25rem; }
-    .mast-head p { margin: 6px 0 0; color: var(--cp-text-muted); font-size: 0.82rem; }
-    .signal-stack {
-      width: 116px;
-      align-self: center;
-      justify-self: center;
-      display: grid;
-      gap: 8px;
-      padding: 18px;
-      border-left: 2px solid var(--cp-border-strong);
-      border-right: 2px solid var(--cp-border-strong);
-    }
-    .signal-bar {
-      height: 34px;
-      border: 2px solid currentColor;
-      background: var(--cp-surface-soft);
-    }
-    .signal-bar.on.success { background: var(--cp-success); color: var(--cp-success); }
-    .signal-bar.on.warning { background: var(--cp-warning); color: var(--cp-warning); }
-    .signal-bar.on.danger { background: var(--cp-danger); color: var(--cp-danger); }
-    .mast-rate {
-      padding: 18px;
-      text-align: center;
-      border-top: 1px solid var(--cp-border);
-    }
-    .mast-rate strong { display: block; font-size: 4.4rem; line-height: 0.9; letter-spacing: -0.06em; }
-    .mast-rate span { color: var(--cp-text-muted); font-size: 0.78rem; }
+
     .attention-board {
       border: 1px solid var(--cp-border);
       border-radius: 16px;
@@ -655,7 +314,10 @@ FORM: Ambient command display with direct-action drill-down.
       text-align: right;
       font-family: Consolas, "Courier New", Courier, monospace;
       color: var(--cp-warning);
+      white-space: nowrap;
     }
+    .attention-repo a { color: var(--cp-link); }
+    .watch-empty { margin: 0; padding: 18px; color: var(--cp-text-muted); }
 
     .footer {
       min-height: 54px;
@@ -801,7 +463,7 @@ FORM: Ambient command display with direct-action drill-down.
       border-radius: var(--radius-medium, 6px);
       box-shadow: var(--shadow-xsmall, none);
     }
-    .berth { border-radius: var(--radius-medium, 6px); }
+
     .tooltip {
       position: fixed;
       z-index: 999;
@@ -891,19 +553,7 @@ FORM: Ambient command display with direct-action drill-down.
       color: var(--text-color-accent, var(--cp-link));
       font-weight: var(--font-weight-semibold, 600);
     }
-    .overview-summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(160px, 1fr));
-      border-bottom: 1px solid var(--border-color-default, var(--cp-border));
-      background: var(--background-color-muted, var(--cp-surface-soft));
-    }
-    .summary-cell {
-      padding: 14px 20px;
-      border-right: 1px solid var(--border-color-default, var(--cp-border));
-    }
-    .summary-cell:last-child { border-right: 0; }
-    .summary-cell strong { display: block; font-size: var(--text-title-medium, 20px); }
-    .summary-cell span { color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+
     .repo-collection {
       padding: 20px 28px 28px;
       background: var(--background-color-default, var(--cp-surface));
@@ -1785,13 +1435,7 @@ FORM: Ambient command display with direct-action drill-down.
     .health-number { color: var(--text-color-danger, var(--cp-danger)); }
     .app, main, .screen, .topbar > * { min-width: 0; }
 
-    @keyframes tide {
-      0% { transform: translateY(-18px); }
-      55% { transform: translateY(18px); }
-      100% { transform: translateY(-18px); }
-    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .current { animation: tide 8s cubic-bezier(.2,.8,.2,1) infinite; }
 
     @media (max-width: 1180px) {
       .repo-collection.list-view .repo-entry {
@@ -1822,8 +1466,7 @@ FORM: Ambient command display with direct-action drill-down.
       .view-switcher { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; }
       .view-switcher button { flex: 1; }
       .fleet-health { grid-column: 2; grid-row: 1; }
-      .harbor { grid-template-columns: 1fr 92px 1fr; }
-      .berth-bank { grid-template-columns: repeat(2, 1fr); }
+
       .convoy { grid-template-columns: 180px 1fr 150px; }
       .ambient-overview { grid-template-columns: 0.7fr 1.3fr; }
       .ambient-actions-panel { grid-column: 1 / -1; border-top: 1px solid var(--border-color-default, var(--cp-border)); }
@@ -1888,18 +1531,10 @@ FORM: Ambient command display with direct-action drill-down.
       .repo-scope-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .repo-scope-tab { min-width: 0; padding: 0 8px; }
       .repo-scope-caption { padding: 8px; text-align: left; }
-      .harbor { grid-template-columns: 1fr; }
-      .berth-bank { grid-template-columns: repeat(2, minmax(130px, 1fr)); padding: 14px; }
-      .merge-lock { grid-row: 2; min-height: 240px; }
-      .lock-channel { min-height: 120px; }
-      .watch-strip { padding: 16px; }
-      .watch-grid { grid-template-columns: 1fr; }
-      .watch-item { border-right: 0; border-bottom: 1px solid var(--cp-border); }
-      .watch-item:last-child { border-bottom: 0; }
+
       .convoy { padding: 14px; grid-template-columns: 140px minmax(520px, 1fr) 140px; overflow-x: auto; }
       .watchtower { padding: 14px; grid-template-columns: 1fr; }
-      .overview-summary { grid-template-columns: 1fr; }
-      .summary-cell { border-right: 0; border-bottom: 1px solid var(--cp-border); }
+
       .repo-collection { padding: 14px; }
       .repo-collection.list-view .repo-entry {
         grid-template-columns: 1fr auto;
@@ -2006,11 +1641,11 @@ FORM: Ambient command display with direct-action drill-down.
     </div>
 
     <main>
-      <section id="overview" class="screen active" aria-label="Harbor overview">
+      <section id="overview" class="screen active" aria-label="Overview">
         <div class="repo-scope-bar">
           <div class="repo-scope-tabs" role="tablist" aria-label="Repository set">
             <button type="button" class="repo-scope-tab" data-repo-scope="personal" role="tab" aria-selected="false">My repos <span class="repo-scope-count" id="personal-repo-count">0</span></button>
-            <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true"><span id="owner-repo-label">Selected repos</span> <span class="repo-scope-count" id="organization-repo-count">20</span></button>
+            <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true"><span id="owner-repo-label">Selected repos</span> <span class="repo-scope-count" id="organization-repo-count">0</span></button>
           </div>
           <section id="mission-center" class="mission-center" aria-live="polite">
             <div class="mission-center-head">
@@ -2043,7 +1678,7 @@ FORM: Ambient command display with direct-action drill-down.
           </div>
         </div>
         <div class="screen-head">
-          <div id="repo-summary"><strong>20 repositories</strong> · 2,907 open pull requests</div>
+          <div id="repo-summary">Loading repositories…</div>
           <div class="overview-layout">
             <span>Layout</span>
             <div class="layout-toggle" aria-label="Repository layout">
@@ -2067,7 +1702,7 @@ FORM: Ambient command display with direct-action drill-down.
         </div>
       </section>
 
-      <section id="convoy" class="screen" aria-label="Convoy flow">
+      <section id="convoy" class="screen" aria-label="PR flow">
         <div class="screen-head">
           <div><strong>Pull request flow</strong> · live, mutually exclusive conditions across the displayed repositories</div>
           <div>Select a repository or stage to open the corresponding GitHub queue</div>
@@ -2075,7 +1710,7 @@ FORM: Ambient command display with direct-action drill-down.
         <div class="flow-board" id="flow-board"></div>
       </section>
 
-      <section id="watchtower" class="screen" aria-label="Watchtower">
+      <section id="watchtower" class="screen" aria-label="Needs attention">
         <div class="screen-head">
           <div><strong>Intervention queue</strong> · the next human actions with the highest flow leverage</div>
           <div>Each row links directly to the pull request that needs attention</div>
@@ -2097,37 +1732,14 @@ FORM: Ambient command display with direct-action drill-down.
   <div id="tooltip" class="tooltip" role="tooltip"></div>
 
   <script>
-    const fallbackRepos = [
-      {name:"advisory-database", prs:1553, url:"https://github.com/github/advisory-database"},
-      {name:"codeql", prs:516, url:"https://github.com/github/codeql"},
-      {name:"github-mcp-server", prs:225, url:"https://github.com/github/github-mcp-server"},
-      {name:"spec-kit", prs:119, url:"https://github.com/github/spec-kit"},
-      {name:"gh-ost", prs:83, url:"https://github.com/github/gh-ost"},
-      {name:"agentfinder-catalog", prs:51, url:"https://github.com/github/agentfinder-catalog"},
-      {name:"copilot-cli", prs:49, url:"https://github.com/github/copilot-cli"},
-      {name:"codeql-action", prs:45, url:"https://github.com/github/codeql-action"},
-      {name:"choosealicense.com", prs:38, url:"https://github.com/github/choosealicense.com"},
-      {name:"codeql-coding-standards", prs:31, url:"https://github.com/github/codeql-coding-standards"},
-      {name:"forgoodfirstissue", prs:29, url:"https://github.com/github/forgoodfirstissue"},
-      {name:"awesome-copilot", prs:25, url:"https://github.com/github/awesome-copilot"},
-      {name:"gh-aw", prs:24, url:"https://github.com/github/gh-aw"},
-      {name:"gitignore", prs:21, url:"https://github.com/github/gitignore"},
-      {name:"local-action", prs:18, url:"https://github.com/github/local-action"},
-      {name:"freno", prs:17, url:"https://github.com/github/freno"},
-      {name:"ghas-jira-integration", prs:17, url:"https://github.com/github/ghas-jira-integration"},
-      {name:"squad", prs:16, url:"https://github.com/github/squad"},
-      {name:"vscode-codeql", prs:15, url:"https://github.com/github/vscode-codeql"},
-      {name:"explore", prs:15, url:"https://github.com/github/explore"}
-    ];
-
-    let repos = fallbackRepos.map(repo => ({ ...repo, owner: "github" }));
+    let repos = [];
+    let hasRepositoryData = false;
     let organizationRepos = [];
     let personalRepos = [];
     let personalRepoKeys = new Set();
     let activeRepoScope = "organization";
     let organizationHasMore = false;
     let organizationCatalogTotal = 0;
-    let organizationCatalogAvailableTotal = 0;
     let organizationRepositoryCount = 0;
     let organizationSearchQuery = "";
     let organizationRequestVersion = 0;
@@ -2144,23 +1756,20 @@ FORM: Ambient command display with direct-action drill-down.
     const latestMissionByRepository = new Map();
     const openFindingIndexesByRepository = new Map();
     const issueCreationStateByFinding = new Map();
-    const states = ["waiting","flowing","blocked","flowing","merging","flowing","waiting","blocked","flowing","merging","flowing","waiting","merging","flowing","blocked","flowing","waiting","merging","flowing","blocked"];
-    const stateLabel = { flowing:"clear", waiting:"waiting", blocked:"blocked", merging:"ready", unknown:"unknown" };
 
     const escapeHtml = (value) => String(value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
-    const stateAt = (index) => states[index % states.length];
-    function stateFor(repo, index) {
+    function stateFor(repo) {
       if (repo.metrics) {
         if (repo.metrics.blocked > 0) return "blocked";
         if (repo.metrics.review + repo.metrics.drafts + repo.metrics.checks > 0) return "waiting";
         if (repo.metrics.ready > 0) return "merging";
         return "flowing";
       }
-      return repo.state || stateAt(index);
+      return "unknown";
     }
 
     const stageCopy = {
@@ -2172,15 +1781,10 @@ FORM: Ambient command display with direct-action drill-down.
       other: "Open pull requests not captured by the actionable lifecycle conditions."
     };
 
+    // Supplied by the extension server from queue-telemetry.mjs so counts and links use the same filters.
+    const queueQualifiers = window.mergeHarborQueueQualifiers ?? {};
     function queueQualifier(key) {
-      return {
-        blocked: "(status:failure OR review:changes_requested)",
-        review: "review:required draft:false -status:failure",
-        drafts: "draft:true -status:failure -review:changes_requested",
-        checks: "status:pending draft:false -review:required -review:changes_requested",
-        ready: "review:approved status:success draft:false",
-        other: ""
-      }[key];
+      return queueQualifiers[key] ?? "";
     }
 
     function queueQuery(owner, repoName, key) {
@@ -2283,10 +1887,6 @@ FORM: Ambient command display with direct-action drill-down.
       }).join("");
     }
 
-    function renderMissionState() {
-      renderDashboard();
-    }
-
     async function startAssessment(button) {
       const owner = button.dataset.assessOwner;
       const name = button.dataset.assessName;
@@ -2302,7 +1902,7 @@ FORM: Ambient command display with direct-action drill-down.
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "The repository assessment could not start.");
         ingestMission(data.mission);
-        renderMissionState();
+        renderDashboard();
       } catch (error) {
         console.error(error);
         showError(`Could not assess ${owner}/${name}. ${error.message}`);
@@ -2417,23 +2017,25 @@ FORM: Ambient command display with direct-action drill-down.
               <span>${escapeHtml(mission.repository.defaultBranch)} @ ${escapeHtml(mission.repository.targetSha.slice(0, 12))}</span>
             </div>
           </div>
-          ${groups.length ? `<div class="finding-groups">${groups.map(group => `<section class="finding-group" aria-labelledby="${missionPanelId(mission.id)}-${group.label.toLowerCase().replaceAll(" ", "-")}">
-            <h3 class="finding-group-heading" id="${missionPanelId(mission.id)}-${group.label.toLowerCase().replaceAll(" ", "-")}">${group.label} · ${group.items.length}</h3>
+          ${groups.length ? `<div class="finding-groups">${groups.map(group => ({ ...group, headingId: `${missionPanelId(mission.id)}-${group.label.toLowerCase().replaceAll(" ", "-")}` })).map(group => `<section class="finding-group" aria-labelledby="${group.headingId}">
+            <h3 class="finding-group-heading" id="${group.headingId}">${group.label} · ${group.items.length}</h3>
             ${group.items.map(item => renderFinding(mission, key, item)).join("")}
           </section>`).join("")}</div>` : `<div class="assessment-empty"><strong>No reviewable root causes reported.</strong><span>The assessment completed without an evidence-backed issue draft.</span></div>`}
         </div>
       </div>`;
     }
 
+    function recordFindingOpenState(details) {
+      const key = details.dataset.assessmentRepository;
+      const index = Number(details.dataset.findingIndex);
+      const openIndexes = openFindingIndexesByRepository.get(key) ?? new Set();
+      if (details.open) openIndexes.add(index);
+      else openIndexes.delete(index);
+      openFindingIndexesByRepository.set(key, openIndexes);
+    }
+
     function captureFindingState() {
-      document.querySelectorAll(".assessment-finding").forEach(details => {
-        const key = details.dataset.assessmentRepository;
-        const index = Number(details.dataset.findingIndex);
-        const openIndexes = openFindingIndexesByRepository.get(key) ?? new Set();
-        if (details.open) openIndexes.add(index);
-        else openIndexes.delete(index);
-        openFindingIndexesByRepository.set(key, openIndexes);
-      });
+      document.querySelectorAll(".assessment-finding").forEach(recordFindingOpenState);
     }
 
     function captureAssessmentFocus() {
@@ -2541,6 +2143,15 @@ FORM: Ambient command display with direct-action drill-down.
       animateAssessmentPanel(panel, expanded);
     }
 
+    function focusMissionPanel(missionId) {
+      const panel = document.getElementById(missionPanelId(missionId));
+      panel?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+      panel?.querySelector("h2")?.focus({ preventScroll: true });
+    }
+
     function reviewMission(missionId, sourceButton) {
       const mission = missionsById.get(missionId);
       if (!mission) return;
@@ -2554,12 +2165,7 @@ FORM: Ambient command display with direct-action drill-down.
       openAssessmentRepositoryKey = shouldExpand ? key : undefined;
       setAssessmentOpen(key, shouldExpand);
       if (routeToOverview && shouldExpand) {
-        const panel = document.getElementById(missionPanelId(missionId));
-        panel?.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-          block: "start",
-        });
-        panel?.querySelector("h2")?.focus({ preventScroll: true });
+        focusMissionPanel(missionId);
       }
     }
 
@@ -2570,12 +2176,7 @@ FORM: Ambient command display with direct-action drill-down.
       openAssessmentRepositoryKey = mission.repository.key;
       showView("overview");
       renderDashboard();
-      const panel = document.getElementById(missionPanelId(missionId));
-      panel?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        block: "start",
-      });
-      panel?.querySelector("h2")?.focus({ preventScroll: true });
+      focusMissionPanel(missionId);
     }
 
     function findIssuePublicationElement(key) {
@@ -2641,24 +2242,6 @@ FORM: Ambient command display with direct-action drill-down.
       }
     }
 
-    function berth(repo, index) {
-      const state = stateFor(repo, index);
-      const positions = [18, 38, 63, 78];
-      const marks = positions.slice(0, Math.min(4, Math.max(1, Math.ceil(Math.log10(repo.prs + 1))))).map((top, markIndex) => {
-        const markState = markIndex === positions.length - 1 ? state : (markIndex % 2 ? "waiting" : "flowing");
-        return `<i class="vessel ${markState}" style="top:${top}%" data-help="A pull request marker at an illustrative workflow position"></i>`;
-      }).join("");
-      return `
-        <article class="berth" data-help="${escapeHtml(repo.name)} has ${repo.prs.toLocaleString()} open pull requests in the live GitHub data">
-          <div class="berth-head">
-            <a class="berth-name" href="${repo.url}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
-            <span class="berth-count">${repo.prs.toLocaleString()} open PRs</span>
-          </div>
-          <div class="lane" data-help="This berth compresses the repository's pull request queue into a glanceable lane">${marks}</div>
-          <span class="signal ${state}" data-help="${escapeHtml(repo.stateDetail || `${stateLabel[state]} is an illustrative operational state`)}">${stateLabel[state]}</span>
-        </article>`;
-    }
-
     const metricDefinitions = [
       { key: "blocked", label: "Blocked", color: "#cf222e" },
       { key: "review", label: "Review", color: "#0969da" },
@@ -2702,7 +2285,7 @@ FORM: Ambient command display with direct-action drill-down.
       return `
         <article class="repo-entry${assessmentOpen ? " assessment-open" : ""}" data-repository-key="${escapeHtml(key)}" data-help="${escapeHtml(owner)}/${escapeHtml(repo.name)} is shown with full-queue pull request telemetry">
           <div class="repo-entry-title">
-            <a href="${repo.url}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
+            <a href="${escapeHtml(repo.url)}" target="_blank" rel="noreferrer" data-help="Open ${escapeHtml(repo.name)} on GitHub">${escapeHtml(repo.name)}</a>
             <p>${activeRepoScope === "personal" ? `${escapeHtml(owner)} · ` : ""}${escapeHtml(repo.description || "Repository activity and pull request flow")}</p>
           </div>
           ${telemetry}
@@ -2737,11 +2320,11 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function buildWatch() {
-      const realSignals = repos
+      return repos
         .filter(repo => repo.signal)
         .sort((a, b) => {
           const priority = { blocked: 0, waiting: 1, merging: 2, flowing: 3, unknown: 4 };
-          return priority[stateFor(a, 0)] - priority[stateFor(b, 0)] || b.signal.ageDays - a.signal.ageDays;
+          return priority[stateFor(a)] - priority[stateFor(b)] || b.signal.ageDays - a.signal.ageDays;
         })
         .slice(0, 8)
         .map(repo => ({
@@ -2749,26 +2332,11 @@ FORM: Ambient command display with direct-action drill-down.
           issue: `#${repo.signal.number} ${repo.signal.title}`,
           action: `${repo.signal.reason} · ${repo.signal.action}`,
           age: repo.signal.ageDays === 0 ? "active today" : `${repo.signal.ageDays}d since update`,
+          shortAge: repo.signal.ageDays === 0 ? "today" : `${repo.signal.ageDays}d ago`,
           url: repo.signal.url,
           owner: repo.owner || currentOwner,
           name: repo.name,
         }));
-      if (realSignals.length) return realSignals;
-      const candidates = [0, 2, 7, Math.max(0, repos.length - 1)];
-      const messages = [
-        ["Queue pressure exceeds the display threshold", "Assign a queue captain", "2h 18m"],
-        ["Review lane is the current bottleneck", "Add a human reviewer", "1h 42m"],
-        ["Checks are holding the merge lock", "Inspect failing checks", "58m"],
-        ["Oldest pull request is outside the expected tide window", "Rebase or close", "3h 06m"]
-      ];
-      return candidates.slice(0, Math.min(4, repos.length)).map((repoIndex, index) => ({
-        repo: repos[repoIndex]?.name ?? "No repository",
-        issue: messages[index][0],
-        action: messages[index][1],
-        age: messages[index][2],
-        owner: repos[repoIndex]?.owner || currentOwner,
-        name: repos[repoIndex]?.name,
-      }));
     }
 
     function renderDashboard() {
@@ -2798,12 +2366,12 @@ FORM: Ambient command display with direct-action drill-down.
       const personalOwnerCount = new Set(repos.map(repo => repo.owner)).size;
       document.getElementById("repo-summary").innerHTML = activeRepoScope === "personal"
         ? `<strong>${repos.length} my repos</strong> · ${personalOwnerCount} GitHub owner${personalOwnerCount === 1 ? "" : "s"} · ${total.toLocaleString()} open pull requests`
-        : `<strong>${repos.length} of ${organizationCatalogTotal || repos.length} ${organizationSearchQuery ? "matches " : ""}loaded</strong> · ${currentOwner} · ${total.toLocaleString()} open pull requests`;
-      document.getElementById("health-number").textContent = totals.blocked.toLocaleString();
+        : `<strong>${repos.length} of ${organizationCatalogTotal || repos.length} ${organizationSearchQuery ? "matches " : ""}loaded</strong> · ${escapeHtml(currentOwner)} · ${total.toLocaleString()} open pull requests`;
+      document.getElementById("health-number").textContent = hasRepositoryData ? totals.blocked.toLocaleString() : "—";
       document.getElementById("health-title").textContent = "blocked PRs";
-      document.getElementById("health-detail").textContent = `Across ${blockedRepos} repositories · open queue`;
-      document.getElementById("ambient-blocked").textContent = totals.blocked.toLocaleString();
-      document.getElementById("ambient-blocked-detail").textContent = `Across ${blockedRepos} of ${repos.length} ${activeRepoScope === "personal" ? "personal" : "displayed"} repositories · open queue`;
+      document.getElementById("health-detail").textContent = hasRepositoryData ? `In ${blockedRepos} of ${repos.length} repositories` : "Loading…";
+      document.getElementById("ambient-blocked").textContent = hasRepositoryData ? totals.blocked.toLocaleString() : "—";
+      document.getElementById("ambient-blocked-detail").textContent = !hasRepositoryData ? "Loading full-queue status…" : `In ${blockedRepos} of ${repos.length} ${activeRepoScope === "personal" ? "personal" : "displayed"} repositories`;
       const blockedQueueUrl = activeQueueUrl("blocked");
       document.getElementById("blocked-queue-link").href = blockedQueueUrl;
       document.getElementById("blocked-queue-link-top").href = blockedQueueUrl;
@@ -2821,13 +2389,13 @@ FORM: Ambient command display with direct-action drill-down.
         <div class="distribution-legend">${fleetItems.map(item => metricSwitch(item, activeQueueUrl(item.key), total, activeRepoScope === "personal" ? "My repos" : "the displayed owner queue")).join("")}</div>`
         : `<div class="distribution-empty">No open pull requests in the displayed repositories.</div>`;
 
-      document.getElementById("ambient-actions").innerHTML = watch.slice(0, 3).map((item, index) => `
+      document.getElementById("ambient-actions").innerHTML = watch.length ? watch.slice(0, 3).map((item, index) => `
         <article class="ambient-action" data-help="Priority ${index + 1}: ${escapeHtml(item.action)}">
           <span class="ambient-action-rank">${index + 1}</span>
           <span class="ambient-action-copy"><strong>${escapeHtml(item.repo)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}</span></span>
-          ${item.url ? `<a class="ambient-action-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="ambient-action-open">Details</span>`}
+          ${item.url ? `<a class="ambient-action-open" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="ambient-action-open">Details</span>`}
           ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess", true) : ""}
-        </article>`).join("");
+        </article>`).join("") : `<p class="watch-empty">No pull requests need intervention in the displayed repositories.</p>`;
 
       const flowStages = [
         { key: "blocked", label: "Blocked" },
@@ -2845,21 +2413,21 @@ FORM: Ambient command display with direct-action drill-down.
         return `<section class="flow-stage">
           <div class="flow-stage-head"><h2>${stage.label}</h2><strong>${totals[stage.key].toLocaleString()}</strong></div>
           <p class="flow-stage-copy">${stageCopy[stage.key]}</p>
-          <div class="flow-repos">${ranked.map(repo => `<a class="flow-repo-link" href="${queueUrl(repo.owner || currentOwner, repo.name, stage.key)}" target="_blank" rel="noreferrer"><span>${activeRepoScope === "personal" ? `${escapeHtml(repo.owner)}/` : ""}${escapeHtml(repo.name)}</span><strong>${repo.metrics[stage.key].toLocaleString()}</strong></a>`).join("")}</div>
+          <div class="flow-repos">${ranked.map(repo => `<a class="flow-repo-link" href="${escapeHtml(queueUrl(repo.owner || currentOwner, repo.name, stage.key))}" target="_blank" rel="noreferrer"><span>${activeRepoScope === "personal" ? `${escapeHtml(repo.owner)}/` : ""}${escapeHtml(repo.name)}</span><strong>${repo.metrics[stage.key].toLocaleString()}</strong></a>`).join("")}</div>
           <a class="flow-stage-all" href="${activeQueueUrl(stage.key)}" target="_blank" rel="noreferrer">Open all ${stage.label.toLowerCase()} PRs</a>
         </section>`;
       }).join("");
 
       document.getElementById("attention-count").textContent = `${watch.length} prioritized PR${watch.length === 1 ? "" : "s"}`;
-      document.getElementById("attention-list").innerHTML = watch.map((item, index) => `
+      document.getElementById("attention-list").innerHTML = watch.length ? watch.map((item, index) => `
         <article class="attention-row" data-help="Ranked intervention ${index + 1} for ${escapeHtml(item.repo)}">
           <div class="attention-rank">${index + 1}</div>
-          <div class="attention-repo"><strong>${escapeHtml(item.repo)}</strong><span>${item.url ? `<a href="${item.url}" target="_blank" rel="noreferrer">${escapeHtml(item.issue)}</a>` : escapeHtml(item.issue)}</span></div>
+          <div class="attention-repo"><strong>${escapeHtml(item.repo)}</strong><span>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.issue)}</a>` : escapeHtml(item.issue)}</span></div>
           <div class="attention-action"><strong>${escapeHtml(item.action)}</strong><span>Recommended intervention</span></div>
-          <div class="attention-age">${item.age}</div>
-          ${item.url ? `<a class="attention-open" href="${item.url}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
+          <div class="attention-age" data-help="Last updated ${escapeHtml(item.shortAge)}">${escapeHtml(item.shortAge)}</div>
+          ${item.url ? `<a class="attention-open" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
           ${item.name ? assessmentButton(item.owner, item.name, "attention-assess", true) : ""}
-        </article>`).join("");
+        </article>`).join("") : `<p class="watch-empty">No pull requests need intervention in the displayed repositories.</p>`;
       updateRepoScopeUi();
       restoreAssessmentFocus(assessmentFocus);
       renderMissionCenter();
@@ -2910,7 +2478,9 @@ FORM: Ambient command display with direct-action drill-down.
       document.getElementById("owner-repo-label").textContent = `${currentOwner} repos`;
       document.getElementById("repo-scope-caption").textContent = activeRepoScope === "personal"
         ? `${personalRepoKeys.size} saved repos across GitHub owners`
-        : `${organizationRepos.length} loaded from ${currentOwner}${organizationRepositoryCount ? ` · ${organizationRepositoryCount.toLocaleString()} total repositories` : ""}`;
+        : organizationRepositoryCount > organizationCatalogTotal && !organizationSearchQuery
+          ? `Browsing the ${organizationCatalogTotal.toLocaleString()} most recently pushed of ${organizationRepositoryCount.toLocaleString()} repositories · search to reach the rest`
+          : `${organizationRepos.length} loaded from ${currentOwner}`;
       const search = document.getElementById("repo-search");
       search.classList.toggle("visible", activeRepoScope === "organization");
       const searchInput = document.getElementById("repo-search-input");
@@ -2933,11 +2503,12 @@ FORM: Ambient command display with direct-action drill-down.
         : organizationHasMore
           ? organizationSearchQuery
             ? `${organizationRepos.length} of ${organizationCatalogTotal} matching repositories loaded.`
-            : `${organizationRepos.length} of ${organizationCatalogTotal} available repositories loaded. Scroll to load more.`
+            : `${organizationRepos.length} of the ${organizationCatalogTotal} most recently pushed repositories loaded. Scroll to load more.`
           : `All ${organizationRepos.length} available repositories are loaded.`;
     }
 
     function showPersonalData(data) {
+      hasRepositoryData = true;
       personalRepos = data.repos;
       personalRepoKeys = new Set(data.references.map(reference => repoKey(reference.owner, reference.name)));
       activeRepoScope = "personal";
@@ -2952,6 +2523,7 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     function showOrganizationData(data) {
+      hasRepositoryData = true;
       activeRepoScope = "organization";
       repos = organizationRepos;
       currentOwnerKind = data.owner.kind ?? currentOwnerKind;
@@ -2984,12 +2556,13 @@ FORM: Ambient command display with direct-action drill-down.
       }
     }
 
-    async function loadOrganizationData({ reset = false, activate = true, blank = false } = {}) {
+    async function loadOrganizationData({ reset = false, activate = true, blank = false, keepLoaded = false } = {}) {
       const select = document.getElementById("org-select");
       const owner = select.value;
       if (!owner) return;
       const offset = reset ? 0 : organizationRepos.length;
       const query = organizationSearchQuery;
+      const limit = reset && keepLoaded && !query ? Math.min(100, Math.max(20, organizationRepos.length)) : 20;
       const requestVersion = reset ? ++organizationRequestVersion : organizationRequestVersion;
       let requestController;
       if (reset) {
@@ -3004,7 +2577,7 @@ FORM: Ambient command display with direct-action drill-down.
       }
       showError();
       try {
-        const response = await fetch(`/api/repos?owner=${encodeURIComponent(owner)}&offset=${offset}&limit=20&query=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/api/repos?owner=${encodeURIComponent(owner)}&offset=${offset}&limit=${limit}&query=${encodeURIComponent(query)}`, {
           cache: "no-store",
           signal: requestController?.signal,
         });
@@ -3020,7 +2593,6 @@ FORM: Ambient command display with direct-action drill-down.
         ];
         organizationHasMore = data.hasMore;
         organizationCatalogTotal = data.catalogTotal;
-        organizationCatalogAvailableTotal = data.catalogAvailableTotal;
         organizationRepositoryCount = data.organizationRepositoryCount;
         if (activate) {
           showOrganizationData(data);
@@ -3050,7 +2622,7 @@ FORM: Ambient command display with direct-action drill-down.
       if (activeRepoScope === "personal") {
         await loadPersonalData({ blank });
       } else {
-        await loadOrganizationData({ reset: true, activate: true, blank });
+        await loadOrganizationData({ reset: true, activate: true, blank, keepLoaded: !blank });
       }
     }
 
@@ -3124,7 +2696,7 @@ FORM: Ambient command display with direct-action drill-down.
         }
       } catch (error) {
         console.error(error);
-        showError("GitHub accounts and organizations could not be loaded. Showing the built-in github organization demo.");
+        showError("GitHub accounts and organizations could not be loaded. Check gh auth status, then select Refresh.");
         document.getElementById("org-select").innerHTML = `<option value="github">github</option>`;
         activeRepoScope = "organization";
         renderDashboard();
@@ -3142,7 +2714,11 @@ FORM: Ambient command display with direct-action drill-down.
     function showView(view) {
       document.querySelectorAll("[data-view]").forEach(item => item.setAttribute("aria-selected", String(item.dataset.view === view)));
       document.querySelectorAll(".screen").forEach(screen => screen.classList.toggle("active", screen.id === view));
-      document.getElementById(view)?.scrollIntoView({ block: "start" });
+      hideTooltip();
+      const screen = document.getElementById(view);
+      if (screen && screen.getBoundingClientRect().top < 0) {
+        screen.scrollIntoView({ block: "start" });
+      }
     }
 
     document.querySelectorAll("[data-view]").forEach(button => {
@@ -3197,22 +2773,16 @@ FORM: Ambient command display with direct-action drill-down.
     });
     document.getElementById("repo-collection").addEventListener("toggle", event => {
       const details = event.target.closest(".assessment-finding");
-      if (!details) return;
-      const key = details.dataset.assessmentRepository;
-      const index = Number(details.dataset.findingIndex);
-      const openIndexes = openFindingIndexesByRepository.get(key) ?? new Set();
-      if (details.open) openIndexes.add(index);
-      else openIndexes.delete(index);
-      openFindingIndexesByRepository.set(key, openIndexes);
+      if (details) recordFindingOpenState(details);
     }, true);
 
     window.addEventListener("merge-harbor:missions", event => {
       (event.detail?.missions || []).forEach(ingestMission);
-      renderMissionState();
+      renderDashboard();
     });
     window.addEventListener("merge-harbor:mission", event => {
       ingestMission(event.detail);
-      renderMissionState();
+      renderDashboard();
     });
 
     document.getElementById("org-select").addEventListener("change", async () => {
@@ -3220,7 +2790,6 @@ FORM: Ambient command display with direct-action drill-down.
       organizationRepos = [];
       organizationHasMore = false;
       organizationCatalogTotal = 0;
-      organizationCatalogAvailableTotal = 0;
       organizationRepositoryCount = 0;
       organizationSearchQuery = "";
       document.getElementById("repo-search-input").value = "";
@@ -3298,8 +2867,12 @@ FORM: Ambient command display with direct-action drill-down.
     }
     document.addEventListener("pointerover", event => showTooltip(event.target.closest("[data-help]")));
     document.addEventListener("pointerout", event => hideTooltip(event.target.closest("[data-help]")));
-    document.addEventListener("focusin", event => showTooltip(event.target.closest("[data-help]")));
+    document.addEventListener("focusin", event => {
+      if (event.target.matches?.(":focus-visible")) showTooltip(event.target.closest("[data-help]"));
+    });
     document.addEventListener("focusout", event => hideTooltip(event.target.closest("[data-help]")));
+    document.addEventListener("pointerdown", () => hideTooltip());
+    window.addEventListener("scroll", () => hideTooltip(), { passive: true, capture: true });
 
     const savedAutoRefresh = localStorage.getItem("merge-harbor-auto-refresh");
     const savedInterval = localStorage.getItem("merge-harbor-refresh-interval");
