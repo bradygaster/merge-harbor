@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed the Repository assessments panel squeezing the My repos and owner tabs into narrow columns; it now spans the width below them
+- Fixed assessment status dots rendering as thin bars
 - Fixed the canvas scrolling past its tab bar when it opens or when Copilot switches views
 - Fixed auto-refresh discarding repositories loaded by scrolling; refresh now reloads every loaded page
 - Fixed tooltips staying visible after a click or scroll; focus tooltips now appear for keyboard focus only

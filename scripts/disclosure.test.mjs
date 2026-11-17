@@ -59,6 +59,14 @@ function loadPageFunctions(names, globals = {}) {
     "This is an explicit remote write.",
 ].forEach((clause) => assert(html.includes(clause), `Assessment disclosure is missing: ${clause}`));
 
+{
+    // The assessments panel is full width; inside the scope bar's flex row it squeezes the tabs and caption.
+    const barStart = html.indexOf('<div class="repo-scope-bar">');
+    const missionCenter = html.indexOf('<section id="mission-center"');
+    const captionEnd = html.indexOf("</div>", html.indexOf('id="repo-scope-caption"'));
+    const barEnd = html.indexOf("</div>", captionEnd + 1);
+    assert(barStart !== -1 && missionCenter > barEnd, "The repository assessments panel must sit outside the repository scope bar.");
+}
 assert(!html.includes("Create selected issues"), "Bulk issue publication controls must not be rendered.");
 const findingSummaryEnd = html.indexOf("</summary>", html.indexOf("<details class=\"finding assessment-finding\""));
 const issueActionStart = html.indexOf("${renderIssuePublication", html.indexOf("<details class=\"finding assessment-finding\""));
