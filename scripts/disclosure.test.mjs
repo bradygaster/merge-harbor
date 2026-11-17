@@ -43,9 +43,6 @@ function loadPageFunctions(names, globals = {}) {
     "restoreAssessmentFocus(assessmentFocus)",
     "clearAssessmentDisclosureState()",
     'data-review-route="overview"',
-    'data-recover-mission="${escapeHtml(mission.id)}"',
-    "assessmentRecoveryEntry(recoveredMission)",
-    "Show repository findings",
     'focus({ preventScroll: true })',
     'data-issue-action="prepare">Create issue</button>',
     'data-issue-action="create"',
@@ -60,12 +57,18 @@ function loadPageFunctions(names, globals = {}) {
 ].forEach((clause) => assert(html.includes(clause), `Assessment disclosure is missing: ${clause}`));
 
 {
-    // The assessments panel is full width; inside the scope bar's flex row it squeezes the tabs and caption.
-    const barStart = html.indexOf('<div class="repo-scope-bar">');
-    const missionCenter = html.indexOf('<section id="mission-center"');
-    const captionEnd = html.indexOf("</div>", html.indexOf('id="repo-scope-caption"'));
-    const barEnd = html.indexOf("</div>", captionEnd + 1);
-    assert(barStart !== -1 && missionCenter > barEnd, "The repository assessments panel must sit outside the repository scope bar.");
+    // Assessments live only in their repository rows; there is no page-level assessments panel.
+    assert(!html.includes('id="mission-center"'), "Repository assessments must not render in a page-level panel.");
+    const { assessmentStatusNote } = loadPageFunctions(["assessmentStatusNote"], {
+        escapeHtml: (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"),
+    });
+    assert(assessmentStatusNote(undefined) === "", "Repositories without an assessment show no status note.");
+    assert(assessmentStatusNote({ status: "completed" }) === "", "Completed assessments use the findings toggle, not a status note.");
+    const running = assessmentStatusNote({ status: "in_progress", phase: "Coordinating specialists" });
+    assert(running.includes("Assessment in progress") && running.includes("Coordinating specialists"), "Running assessments must show their phase in the row.");
+    assert(assessmentStatusNote({ status: "queued" }).includes("Starting assessment"), "Queued assessments must show that they are starting.");
+    const failed = assessmentStatusNote({ status: "failed", message: "Copilot could not start <the> assessment" });
+    assert(failed.includes("Assessment failed") && failed.includes("&lt;the&gt;"), "Failed assessments must show their escaped reason in the row.");
 }
 assert(!html.includes("Create selected issues"), "Bulk issue publication controls must not be rendered.");
 const findingSummaryEnd = html.indexOf("</summary>", html.indexOf("<details class=\"finding assessment-finding\""));
@@ -153,9 +156,5 @@ assert(
     document.activeElement = new HTMLElement({ selectors: [] });
     assert(captureAssessmentFocus() === undefined, "Focus outside a repository entry must not be captured.");
 }
-assert(
-    html.includes("This completed assessment is outside the current repository set."),
-    "Completed results outside the current collection must remain recoverable without a global findings wall.",
-);
 
 console.info("Repository assessment disclosure structure and interaction tests passed.");

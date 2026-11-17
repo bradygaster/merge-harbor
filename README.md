@@ -108,7 +108,7 @@ When assessment completes, **Review findings** expands a panel attached to that 
 - severity and confidence
 - evidence and dependency counts
 
-Expand a finding to review its root cause, evidence, dependencies, and complete proposed issue draft. If filtering hides the repository, use the compact mission index to load its repository-attached result.
+Expand a finding to review its root cause, evidence, dependencies, and complete proposed issue draft. Assessments appear only in their repository's row: while one is starting or running, or if it fails, the row shows its status under the assessment button. To review a repository that is not in the current list, select its owner, search for it, or add it to My repos.
 
 ### 6. Create an issue explicitly
 
