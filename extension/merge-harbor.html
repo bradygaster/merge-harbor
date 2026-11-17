@@ -768,6 +768,8 @@ FORM: Ambient command display with direct-action drill-down.
       border-radius: 50%;
       content: "";
     }
+    /* Keep the flex layout where .mission-progress strong would make it block, which collapses the dot. */
+    .mission-progress .mission-status { display: flex; }
     .mission-status.in_progress,
     .mission-status.queued { color: var(--text-color-accent, var(--cp-link)); }
     .mission-status.completed { color: var(--text-color-success, var(--cp-success)); }
@@ -1647,17 +1649,17 @@ FORM: Ambient command display with direct-action drill-down.
             <button type="button" class="repo-scope-tab" data-repo-scope="personal" role="tab" aria-selected="false">My repos <span class="repo-scope-count" id="personal-repo-count">0</span></button>
             <button type="button" class="repo-scope-tab" data-repo-scope="organization" role="tab" aria-selected="true"><span id="owner-repo-label">Selected repos</span> <span class="repo-scope-count" id="organization-repo-count">0</span></button>
           </div>
-          <section id="mission-center" class="mission-center" aria-live="polite">
-            <div class="mission-center-head">
-              <div>
-                <h2>Repository assessments</h2>
-                <p>Active and failed assessments appear here, along with completed results whose repository is outside the current set. Findings stay attached to their repository. Assessment is read-only by default, processes relevant content through GitHub Copilot, and never writes to the remote repository.</p>
-              </div>
-            </div>
-            <div id="mission-list" class="mission-list"></div>
-          </section>
           <div class="repo-scope-caption" id="repo-scope-caption">Showing the selected repository owner</div>
         </div>
+        <section id="mission-center" class="mission-center" aria-live="polite">
+          <div class="mission-center-head">
+            <div>
+              <h2>Repository assessments</h2>
+              <p>Active and failed assessments appear here, along with completed results whose repository is outside the current set. Findings stay attached to their repository. Assessment is read-only by default, processes relevant content through GitHub Copilot, and never writes to the remote repository.</p>
+            </div>
+          </div>
+          <div id="mission-list" class="mission-list"></div>
+        </section>
         <div class="ambient-overview">
           <div class="ambient-panel">
             <a class="ambient-status" id="blocked-queue-link" href="https://github.com/pulls" target="_blank" rel="noreferrer" data-help="Open the selected owner's blocked pull request queue on GitHub">
