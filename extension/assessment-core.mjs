@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const activeStatuses = new Set(["queued", "in_progress"]);
 export const assessmentInterruptionTimeoutMs = 30 * 60 * 1000;
@@ -212,7 +212,7 @@ export async function createAssessmentIssue({
             body: { error: `GitHub could not check for an existing issue. ${error.message}` },
         };
     }
-    let reconciled = Boolean(issue);
+    const reconciled = Boolean(issue);
     if (!issue) {
         try {
             issue = await createIssue({ mission, finding, findingIndex, marker });
@@ -222,7 +222,6 @@ export async function createAssessmentIssue({
                 body: { error: `GitHub could not create the issue. ${error.message}` },
             };
         }
-        reconciled = false;
     }
 
     let normalizedIssue;
@@ -251,6 +250,14 @@ export async function createAssessmentIssue({
     };
 }
 
+// Writes through a temporary file and rename so readers never see a partial file.
+export function writeFileAtomic(path, contents) {
+    mkdirSync(dirname(path), { recursive: true });
+    const temporaryPath = `${path}.${process.pid}.tmp`;
+    writeFileSync(temporaryPath, contents, "utf8");
+    renameSync(temporaryPath, path);
+}
+
 export function createMissionStore(directory, {
     now = () => new Date().toISOString(),
     idFactory = () => randomUUID(),
@@ -262,11 +269,7 @@ export function createMissionStore(directory, {
     }
 
     function write(mission) {
-        mkdirSync(missionDirectory, { recursive: true });
-        const path = missionPath(mission.id);
-        const temporaryPath = `${path}.${process.pid}.tmp`;
-        writeFileSync(temporaryPath, `${JSON.stringify(mission, null, 2)}\n`, "utf8");
-        renameSync(temporaryPath, path);
+        writeFileAtomic(missionPath(mission.id), `${JSON.stringify(mission, null, 2)}\n`);
         return mission;
     }
 

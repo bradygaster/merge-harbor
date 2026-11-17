@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Fixed the canvas scrolling past its tab bar when it opens or when Copilot switches views
+- Fixed auto-refresh discarding repositories loaded by scrolling; refresh now reloads every loaded page
+- Fixed tooltips staying visible after a click or scroll; focus tooltips now appear for keyboard focus only
+- Clarified that browsing covers an owner's 100 most recently pushed repositories and that search reaches the rest
+- Kept Needs attention ages on one line and PR links in the standard link color
+- Removed the built-in `github` demo data and the invented fallback interventions; empty states now explain when nothing needs attention
+- Escaped GitHub URLs before placing them in links
+- Moved lifecycle queue filters and attention-signal rules into `extension/queue-telemetry.mjs` so counts and queue links share one definition
+- A failed telemetry batch now affects only its own repositories, failed lookups are retried on the next refresh, and preferences are written only when the selected owner changes
+- Copied preferences found beside the extension code into the artifacts directory once
+- Removed the unused Harbor Panorama markup, styles, and server-side state classification
+- Replaced source-text assertions in the validators with behavioral tests for queue telemetry, finding order, and focus preservation
+
 ## 0.3.0 - 2026-11-13
 
 - Added one-click, read-only repository assessments from repository and attention views

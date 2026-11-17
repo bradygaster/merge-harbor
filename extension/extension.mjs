@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
@@ -14,11 +14,21 @@ import {
     assessmentInterruptionTimeoutMs,
     recoverInterruptedMissions,
     validateMissionUpdate,
+    writeFileAtomic,
 } from "./assessment-core.mjs";
+import {
+    ownerSearchQualifier,
+    pickAttentionSignal,
+    queueMetrics,
+    queueQualifiers,
+    queueSearches,
+    repoKey,
+    toRepoSummary,
+} from "./queue-telemetry.mjs";
 
 const servers = new Map();
 const execFileAsync = promisify(execFile);
-const prototypeHtml = readFileSync(new URL("./merge-harbor.html", import.meta.url), "utf8");
+const pageHtml = readFileSync(new URL("./merge-harbor.html", import.meta.url), "utf8");
 const legacyPreferencesUrl = new URL("./preferences.json", import.meta.url);
 const copilotHome = process.env.COPILOT_HOME ?? join(homedir(), ".copilot");
 const preferencesDirectory = join(copilotHome, "extensions", "merge-harbor", "artifacts");
@@ -36,11 +46,7 @@ function readPreferences() {
     try {
         preferences = JSON.parse(readFileSync(preferencesPath, "utf8"));
     } catch {
-        try {
-            preferences = JSON.parse(readFileSync(legacyPreferencesUrl, "utf8"));
-        } catch {
-            preferences = {};
-        }
+        preferences = migrateLegacyPreferences();
     }
     const seen = new Set();
     const myRepos = Array.isArray(preferences.myRepos)
@@ -49,7 +55,7 @@ function readPreferences() {
             .map((repo) => ({ owner: repo.owner.trim(), name: repo.name.trim() }))
             .filter((repo) => repo.owner && repo.name)
             .filter((repo) => {
-                const key = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+                const key = repoKey(repo.owner, repo.name);
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
@@ -61,11 +67,32 @@ function readPreferences() {
     };
 }
 
+// Preferences beside the extension code can be deleted by an update or
+// reinstall. Copy any found there into the artifacts directory once.
+function migrateLegacyPreferences() {
+    let legacy;
+    try {
+        legacy = JSON.parse(readFileSync(legacyPreferencesUrl, "utf8"));
+    } catch {
+        return {};
+    }
+    try {
+        writePreferences(legacy);
+    } catch {
+        // Keep using the legacy values for this read; the next write persists them.
+    }
+    return legacy;
+}
+
 function writePreferences(preferences) {
-    mkdirSync(preferencesDirectory, { recursive: true });
-    const temporaryPath = `${preferencesPath}.${process.pid}.tmp`;
-    writeFileSync(temporaryPath, `${JSON.stringify(preferences, null, 2)}\n`, "utf8");
-    renameSync(temporaryPath, preferencesPath);
+    writeFileAtomic(preferencesPath, `${JSON.stringify(preferences, null, 2)}\n`);
+}
+
+function rememberSelectedOwner(login) {
+    const preferences = readPreferences();
+    if (preferences.selectedOwner !== login) {
+        writePreferences({ ...preferences, selectedOwner: login });
+    }
 }
 
 async function ghApi(args) {
@@ -181,113 +208,6 @@ async function resolveAssessmentRepository(owner, name) {
     };
 }
 
-function classifyPullRequests(pullRequests) {
-    const now = Date.now();
-    const signals = pullRequests.map((pr) => {
-        const checkState = pr.statusCheckRollup?.state ?? "UNKNOWN";
-        const ageDays = Math.max(0, Math.floor((now - new Date(pr.updatedAt).getTime()) / 86400000));
-        if (pr.mergeable === "CONFLICTING" || pr.mergeStateStatus === "DIRTY") {
-            return { kind: "conflict", reason: "Merge conflict", action: "Resolve merge conflicts", priority: 0, ageDays, pr };
-        }
-        if (checkState === "FAILURE" || checkState === "ERROR") {
-            return { kind: "checks-failing", reason: "Failing checks", action: "Fix failing checks", priority: 1, ageDays, pr };
-        }
-        if (!pr.isDraft && pr.reviewDecision === "APPROVED" && checkState === "SUCCESS" && pr.mergeable === "MERGEABLE") {
-            return { kind: "ready", reason: "Approved and checks passing", action: "Merge when ready", priority: 2, ageDays, pr };
-        }
-        if (pr.reviewDecision === "REVIEW_REQUIRED" || pr.reviewRequests?.totalCount > 0) {
-            return { kind: "review", reason: "Review required", action: "Complete requested review", priority: 3, ageDays, pr };
-        }
-        if (pr.isDraft) {
-            return { kind: "draft", reason: "Draft pull request", action: "Mark ready when complete", priority: 4, ageDays, pr };
-        }
-        if (checkState === "PENDING" || checkState === "EXPECTED") {
-            return { kind: "checks-running", reason: "Checks running", action: "Monitor checks", priority: 5, ageDays, pr };
-        }
-        if (ageDays >= 7) {
-            return { kind: "stale", reason: `${ageDays} days without activity`, action: "Update or close", priority: 6, ageDays, pr };
-        }
-        return { kind: "active", reason: "Recently active", action: "No intervention needed", priority: 7, ageDays, pr };
-    });
-
-    const count = (kinds) => signals.filter((signal) => kinds.includes(signal.kind)).length;
-    const blocked = count(["conflict", "checks-failing"]);
-    const ready = count(["ready"]);
-    const waiting = count(["review", "draft", "stale"]);
-    const flowing = count(["checks-running", "active"]);
-    const blockThreshold = pullRequests.length >= 7 ? 2 : 1;
-    let state;
-    let detail;
-    let candidates;
-
-    if (blocked >= blockThreshold) {
-        state = "blocked";
-        detail = `${blocked} sampled PR${blocked === 1 ? "" : "s"} failing checks or conflicted`;
-        candidates = signals.filter((signal) => ["conflict", "checks-failing"].includes(signal.kind));
-    } else if (ready > 0) {
-        state = "merging";
-        detail = `${ready} sampled PR${ready === 1 ? "" : "s"} approved and checks passing`;
-        candidates = signals.filter((signal) => signal.kind === "ready");
-    } else if (waiting >= Math.max(1, Math.ceil(pullRequests.length * 0.4))) {
-        state = "waiting";
-        detail = `${waiting} sampled PR${waiting === 1 ? "" : "s"} awaiting review, draft completion, or activity`;
-        candidates = signals.filter((signal) => ["review", "draft", "stale"].includes(signal.kind));
-    } else {
-        state = "flowing";
-        detail = `${flowing} sampled PR${flowing === 1 ? "" : "s"} active or running checks`;
-        candidates = signals.filter((signal) => ["checks-running", "active"].includes(signal.kind));
-    }
-
-    const signal = [...candidates].sort((a, b) => a.priority - b.priority || b.ageDays - a.ageDays)[0]
-        ?? [...signals].sort((a, b) => a.priority - b.priority || b.ageDays - a.ageDays)[0];
-
-    return {
-        state,
-        stateDetail: detail,
-        sampleSize: pullRequests.length,
-        counts: { blocked, ready, waiting, flowing },
-        signal: signal ? {
-            kind: signal.kind,
-            reason: signal.reason,
-            action: signal.action,
-            ageDays: signal.ageDays,
-            number: signal.pr.number,
-            title: signal.pr.title,
-            url: signal.pr.url,
-            updatedAt: signal.pr.updatedAt,
-        } : undefined,
-    };
-}
-
-function classifyQueueTelemetry(metrics, total, recent) {
-    const ratio = (value) => value / Math.max(1, total);
-    let state;
-    if (metrics.blocked >= Math.max(2, Math.ceil(total * 0.08))) {
-        state = "blocked";
-    } else if (metrics.ready > 0) {
-        state = "merging";
-    } else if (ratio(metrics.review) >= 0.4 || ratio(metrics.drafts) >= 0.35) {
-        state = "waiting";
-    } else {
-        state = "flowing";
-    }
-    return {
-        state,
-        stateDetail: [
-            `${metrics.blocked.toLocaleString()} blocked`,
-            `${metrics.ready.toLocaleString()} ready`,
-            `${metrics.review.toLocaleString()} review`,
-            `${metrics.drafts.toLocaleString()} drafts`,
-            `${metrics.checks.toLocaleString()} checks running`,
-            `${metrics.other.toLocaleString()} other`,
-        ].join(" · "),
-        metrics,
-        signal: recent.signal,
-        sampleSize: recent.sampleSize,
-        counts: recent.counts,
-    };
-}
-
 async function mapLimit(items, limit, mapper) {
     const results = new Array(items.length);
     let nextIndex = 0;
@@ -337,14 +257,7 @@ async function loadOwnerCatalog(login) {
     if (!account) throw new Error(`GitHub owner "${login}" is not accessible.`);
     const kind = account.__typename === "User" ? "user" : "organization";
     const repos = account.repositories.nodes
-        .map((repo) => ({
-            owner: account.login,
-            name: repo.name,
-            url: repo.url,
-            description: repo.description ?? "",
-            pushedAt: repo.pushedAt,
-            prs: repo.pullRequests.totalCount,
-        }))
+        .map((repo) => toRepoSummary(repo, account.login))
         .sort((a, b) => b.prs - a.prs || a.name.localeCompare(b.name));
     const value = {
         owner: {
@@ -366,7 +279,7 @@ async function searchOwnerRepositories(owner, searchText, { offset = 0, limit = 
     let repositoryCount = 0;
     let cursor;
     let hasNextPage = true;
-    const ownerQualifier = owner.kind === "user" ? "user" : "org";
+    const ownerQualifier = ownerSearchQualifier(owner.kind);
     const searchQuery = `${ownerQualifier}:${owner.login} ${searchText.trim()} in:name,description`;
     const query = `query($q:String!, $first:Int!, $after:String) {
       search(query:$q, type:REPOSITORY, first:$first, after:$after) {
@@ -392,14 +305,7 @@ async function searchOwnerRepositories(owner, searchText, { offset = 0, limit = 
         repositoryCount = Math.min(search.repositoryCount, 1000);
         repositories.push(...search.nodes
             .filter((repo) => repo?.owner?.login?.toLowerCase() === owner.login.toLowerCase())
-            .map((repo) => ({
-                owner: repo.owner.login,
-                name: repo.name,
-                url: repo.url,
-                description: repo.description ?? "",
-                pushedAt: repo.pushedAt,
-                prs: repo.pullRequests.totalCount,
-            })));
+            .map((repo) => toRepoSummary(repo)));
         hasNextPage = search.pageInfo.hasNextPage && repositories.length < repositoryCount;
         cursor = search.pageInfo.endCursor;
     }
@@ -423,41 +329,36 @@ const detailQuery = `query($owner:String!, $name:String!) {
   }
 }`;
 
+async function loadQueueMetrics(owner, chunk) {
+    const fields = chunk.map((repo, index) => {
+        const base = `repo:${owner}/${repo.name} is:pr is:open`;
+        return Object.entries(queueSearches)
+            .map(([key, qualifier]) => `r${index}_${key}: search(query:${JSON.stringify(`${base} ${qualifier}`)}, type:ISSUE, first:1) { issueCount }`)
+            .join("\n");
+    }).join("\n");
+    try {
+        const result = await ghApi(["graphql", "-f", `query=query { ${fields} }`]);
+        const data = result.data ?? {};
+        return chunk.map((repo, index) => {
+            const counts = Object.fromEntries(Object.keys(queueSearches)
+                .map((key) => [key, data[`r${index}_${key}`]?.issueCount ?? 0]));
+            return [repo.name, queueMetrics(counts, repo.prs)];
+        });
+    } catch {
+        // One failed batch leaves only these repositories without telemetry.
+        return chunk.map((repo) => [repo.name, undefined]);
+    }
+}
+
 async function enrichRepositoriesFresh(owner, repos) {
     if (!repos.length) return [];
-    const telemetryChunks = [];
+    const chunks = [];
     for (let index = 0; index < repos.length; index += 5) {
-        telemetryChunks.push(repos.slice(index, index + 5));
+        chunks.push(repos.slice(index, index + 5));
     }
-    const telemetryPairs = (await Promise.all(telemetryChunks.map(async (chunk) => {
-        const fields = chunk.map((repo, index) => {
-            const base = `repo:${owner}/${repo.name} is:pr is:open`;
-            return `
-              r${index}f: search(query:${JSON.stringify(`${base} status:failure`)}, type:ISSUE, first:1) { issueCount }
-              r${index}p: search(query:${JSON.stringify(`${base} status:pending draft:false -review:required -review:changes_requested`)}, type:ISSUE, first:1) { issueCount }
-              r${index}m: search(query:${JSON.stringify(`${base} review:approved status:success draft:false`)}, type:ISSUE, first:1) { issueCount }
-              r${index}r: search(query:${JSON.stringify(`${base} review:required draft:false -status:failure`)}, type:ISSUE, first:1) { issueCount }
-              r${index}d: search(query:${JSON.stringify(`${base} draft:true -status:failure -review:changes_requested`)}, type:ISSUE, first:1) { issueCount }
-              r${index}c: search(query:${JSON.stringify(`${base} review:changes_requested -status:failure`)}, type:ISSUE, first:1) { issueCount }`;
-        }).join("\n");
-        const telemetryResult = await ghApi(["graphql", "-f", `query=query { ${fields} }`]);
-        const data = telemetryResult.data ?? {};
-        return chunk.map((repo, index) => {
-            const failing = data[`r${index}f`]?.issueCount ?? 0;
-            const changesRequested = data[`r${index}c`]?.issueCount ?? 0;
-            const metrics = {
-                blocked: failing + changesRequested,
-                ready: data[`r${index}m`]?.issueCount ?? 0,
-                review: data[`r${index}r`]?.issueCount ?? 0,
-                drafts: data[`r${index}d`]?.issueCount ?? 0,
-                checks: data[`r${index}p`]?.issueCount ?? 0,
-            };
-            metrics.other = Math.max(0, repo.prs - Object.values(metrics).reduce((sum, value) => sum + value, 0));
-            return [repo.name, metrics];
-        });
-    }))).flat();
-    const telemetryByRepo = new Map(telemetryPairs);
+    const metricsByRepo = new Map((await Promise.all(chunks.map((chunk) => loadQueueMetrics(owner, chunk)))).flat());
     return mapLimit(repos, 4, async (repo) => {
+        const metrics = metricsByRepo.get(repo.name);
         try {
             const detailResult = await ghApi([
                 "graphql",
@@ -465,19 +366,10 @@ async function enrichRepositoriesFresh(owner, repos) {
                 "-F", `owner=${owner}`,
                 "-F", `name=${repo.name}`,
             ]);
-            const recent = classifyPullRequests(detailResult.data?.repository?.pullRequests?.nodes ?? []);
-            return {
-                ...repo,
-                ...classifyQueueTelemetry(telemetryByRepo.get(repo.name), repo.prs, recent),
-            };
-        } catch (error) {
-            return {
-                ...repo,
-                state: "unknown",
-                stateDetail: `Pull request signals unavailable: ${error.message.split("\n")[0]}`,
-                sampleSize: 0,
-                counts: { blocked: 0, ready: 0, waiting: 0, flowing: 0 },
-            };
+            const signal = pickAttentionSignal(detailResult.data?.repository?.pullRequests?.nodes ?? []);
+            return { ...repo, metrics, signal };
+        } catch {
+            return { ...repo, metrics };
         }
     });
 }
@@ -489,7 +381,7 @@ async function enrichRepositories(owner, repos) {
     const uncachedRepos = [];
 
     for (const repo of repos) {
-        const key = `${owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+        const key = repoKey(owner, repo.name);
         const cached = repositoryTelemetryCache.get(key);
         if (cached && now - cached.loadedAt < repositoryTelemetryCacheTtlMs) {
             enrichedByName.set(repo.name, { ...repo, ...cached.telemetry });
@@ -500,9 +392,13 @@ async function enrichRepositories(owner, repos) {
 
     const newlyEnriched = await enrichRepositoriesFresh(owner, uncachedRepos);
     for (const repo of newlyEnriched) {
-        const key = `${owner.toLowerCase()}/${repo.name.toLowerCase()}`;
-        const { owner: _owner, name: _name, url: _url, description: _description, pushedAt: _pushedAt, prs: _prs, ...telemetry } = repo;
-        repositoryTelemetryCache.set(key, { loadedAt: Date.now(), telemetry });
+        if (repo.metrics) {
+            // Failed lookups are not cached so the next refresh retries them.
+            repositoryTelemetryCache.set(repoKey(owner, repo.name), {
+                loadedAt: Date.now(),
+                telemetry: { metrics: repo.metrics, signal: repo.signal },
+            });
+        }
         enrichedByName.set(repo.name, repo);
     }
 
@@ -530,7 +426,6 @@ async function loadOrganization(login, { offset = 0, limit = 20, query = "" } = 
         offset,
         limit,
         catalogTotal: matchingTotal,
-        catalogAvailableTotal: normalizedQuery ? catalog.organizationRepositoryCount : catalog.repos.length,
         organizationRepositoryCount: catalog.organizationRepositoryCount,
         hasMore: offset + enrichedRepos.length < matchingTotal,
         query,
@@ -553,14 +448,7 @@ async function loadRepositoriesByName(owner, names) {
         repositories.push(...chunk.flatMap((_, index) => {
             const repo = data[`r${index}`];
             if (!repo) return [];
-            return [{
-                owner: repo.owner.login,
-                name: repo.name,
-                url: repo.url,
-                description: repo.description ?? "",
-                pushedAt: repo.pushedAt,
-                prs: repo.pullRequests.totalCount,
-            }];
+            return [toRepoSummary(repo)];
         }));
     }
     return repositories;
@@ -585,11 +473,11 @@ async function loadPersonalRepositories(references) {
         return enrichRepositories(owner, repos);
     });
     const byKey = new Map(enrichedGroups.flat().map((repo) => [
-        `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`,
+        repoKey(repo.owner, repo.name),
         repo,
     ]));
     const repos = references
-        .map((reference) => byKey.get(`${reference.owner.toLowerCase()}/${reference.name.toLowerCase()}`))
+        .map((reference) => byKey.get(repoKey(reference.owner, reference.name)))
         .filter(Boolean);
     return {
         repos,
@@ -630,7 +518,11 @@ function renderHtml(defaultView) {
     events.addEventListener("mission", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:mission", { detail: JSON.parse(event.data) })));
   })();
 </script>`;
-    return prototypeHtml.replace("</body>", `${bridge}</body>`);
+    // Queue definitions live in queue-telemetry.mjs; hand them to the page before its script runs.
+    const queueDefinitions = `<script>window.mergeHarborQueueQualifiers = ${JSON.stringify(queueQualifiers)};</script>`;
+    return pageHtml
+        .replace("</head>", `${queueDefinitions}</head>`)
+        .replace("</body>", `${bridge}</body>`);
 }
 
 function broadcast(entry, event, payload) {
@@ -719,7 +611,7 @@ async function startServer(instanceId, defaultView) {
     };
     const server = createServer((req, res) => {
         const requestUrl = new URL(req.url ?? "/", "http://127.0.0.1");
-        if (req.url === "/events") {
+        if (requestUrl.pathname === "/events") {
             res.writeHead(200, {
                 "Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
@@ -750,11 +642,11 @@ async function startServer(instanceId, defaultView) {
                 return;
             }
             const offset = Math.max(0, Number.parseInt(requestUrl.searchParams.get("offset") ?? "0", 10) || 0);
-            const limit = Math.min(20, Math.max(1, Number.parseInt(requestUrl.searchParams.get("limit") ?? "20", 10) || 20));
+            const limit = Math.min(100, Math.max(1, Number.parseInt(requestUrl.searchParams.get("limit") ?? "20", 10) || 20));
             const query = requestUrl.searchParams.get("query") ?? "";
             loadOrganization(owner, { offset, limit, query })
                 .then((result) => {
-                    writePreferences({ ...readPreferences(), selectedOwner: result.owner.login });
+                    rememberSelectedOwner(result.owner.login);
                     entry.currentOwner = result.owner.login;
                     entry.lastSummary = {
                         scope: "organization",
@@ -801,8 +693,8 @@ async function startServer(instanceId, defaultView) {
                     }
 
                     const preferences = readPreferences();
-                    const key = `${owner.toLowerCase()}/${name.toLowerCase()}`;
-                    const existing = preferences.myRepos.filter((repo) => `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}` !== key);
+                    const key = repoKey(owner, name);
+                    const existing = preferences.myRepos.filter((repo) => repoKey(repo.owner, repo.name) !== key);
                     const myRepos = action === "add" ? [...existing, { owner, name }] : existing;
                     writePreferences({ ...preferences, myRepos });
                     writeJson(res, 200, { myRepos });
@@ -816,7 +708,7 @@ async function startServer(instanceId, defaultView) {
             const name = requestUrl.searchParams.get("name");
             let missions = missionStore.list();
             if (owner && name) {
-                const identity = `${owner.toLowerCase()}/${name.toLowerCase()}`;
+                const identity = repoKey(owner, name);
                 missions = missions.filter((mission) => mission.repository?.key === identity);
             }
             writeJson(res, 200, { missions: missions.map(publicMission) });
@@ -976,7 +868,7 @@ const session = await joinSession({
             actions: [
                 {
                     name: "show_view",
-                    description: "Switch the open prototype to the harbor overview, convoy flow, or watchtower screen.",
+                    description: "Switch the open canvas to the Overview (overview), PR flow (convoy), or Needs attention (watchtower) view.",
                     inputSchema: {
                         type: "object",
                         properties: {
@@ -1000,7 +892,7 @@ const session = await joinSession({
                 },
                 {
                     name: "get_demo_summary",
-                    description: "Return the public demo-data scope and the prototype's current screen.",
+                    description: "Return the active repository scope, its open pull request totals, and the canvas's current view.",
                     handler: async (ctx) => {
                         const entry = servers.get(ctx.instanceId);
                         return {

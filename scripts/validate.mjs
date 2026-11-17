@@ -17,6 +17,8 @@ const changelogPath = join(root, "CHANGELOG.md");
 const assessmentCorePath = join(root, "extension", "assessment-core.mjs");
 const assessmentTestPath = join(root, "scripts", "assessment.test.mjs");
 const disclosureTestPath = join(root, "scripts", "disclosure.test.mjs");
+const queueTelemetryPath = join(root, "extension", "queue-telemetry.mjs");
+const telemetryTestPath = join(root, "scripts", "telemetry.test.mjs");
 
 function requireFile(path, label) {
     if (!existsSync(path)) {
@@ -36,6 +38,8 @@ function requireFile(path, label) {
     [assessmentCorePath, "Assessment mission core"],
     [assessmentTestPath, "Assessment mission tests"],
     [disclosureTestPath, "Assessment disclosure tests"],
+    [queueTelemetryPath, "Queue telemetry rules"],
+    [telemetryTestPath, "Queue telemetry tests"],
 ].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -182,11 +186,12 @@ if (!extensionSource.includes('candidate.status === "queued"') && !extensionSour
 if (!extensionSource.includes("recoverInterruptedMissions(missionStore)")) {
     throw new Error("Interrupted in-progress missions must be recovered after a bounded timeout.");
 }
+// The GraphQL query text is the contract with GitHub, so it is checked directly.
+// Owner-kind search behavior is covered by scripts/telemetry.test.mjs.
 if (
     !extensionSource.includes("repositoryOwner(login:$login)") ||
     !extensionSource.includes("repositories(first:100, affiliations:[OWNER]") ||
-    !extensionSource.includes('kind: "user"') ||
-    !extensionSource.includes('owner.kind === "user" ? "user" : "org"')
+    !extensionSource.includes("ownerSearchQualifier(owner.kind)")
 ) {
     throw new Error("Repository catalogs must support the signed-in user and organizations with owner-kind search.");
 }
@@ -227,17 +232,11 @@ if (!scripts.length) {
 scripts.forEach((match, index) => {
     new vm.Script(match[1], { filename: `merge-harbor-inline-${index + 1}.js` });
 });
-const assessmentTest = spawnSync(process.execPath, [assessmentTestPath], {
-    encoding: "utf8",
+[assessmentTestPath, disclosureTestPath, telemetryTestPath].forEach((testPath) => {
+    const result = spawnSync(process.execPath, [testPath], { encoding: "utf8" });
+    if (result.status !== 0) {
+        throw new Error(result.stderr || result.stdout || `${relative(root, testPath)} failed.`);
+    }
 });
-if (assessmentTest.status !== 0) {
-    throw new Error(assessmentTest.stderr || assessmentTest.stdout || "assessment.test.mjs failed.");
-}
-const disclosureTest = spawnSync(process.execPath, [disclosureTestPath], {
-    encoding: "utf8",
-});
-if (disclosureTest.status !== 0) {
-    throw new Error(disclosureTest.stderr || disclosureTest.stdout || "disclosure.test.mjs failed.");
-}
 
 console.info(`Merge Harbor plugin ${plugin.version} and extension manifest ${manifest.version} validation passed.`);
