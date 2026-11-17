@@ -318,7 +318,7 @@ try {
     });
     assert(recovered.length === 1, "A stale in-progress mission must be recovered after the bounded timeout.");
     assert(recovered[0].status === "failed", "Interrupted missions must stop blocking future assessments.");
-    assert(recovered[0].message.includes("Assess repository"), "Interrupted mission copy must provide a clear retry action.");
+    assert(recovered[0].message.includes("Retry assessment"), "Interrupted mission copy must provide a clear retry action.");
     const retry = await beginAssessment({
         body: { owner: "octodemo", name: "interrupted-repo" },
         store: recoveryStore,

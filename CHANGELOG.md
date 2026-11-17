@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Removed the page-level Repository assessments panel and its recovery shortcut; starting, running, and failed assessments now show their status in the repository row
 - Fixed the Repository assessments panel squeezing the My repos and owner tabs into narrow columns; it now spans the width below them
 - Fixed assessment status dots rendering as thin bars
 - Fixed the canvas scrolling past its tab bar when it opens or when Copilot switches views

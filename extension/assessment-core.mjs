@@ -69,7 +69,7 @@ export function recoverInterruptedMissions(store, {
         recovered.push(store.update(mission.id, {
             status: "failed",
             phase: "Assessment interrupted",
-            message: "The assessment stopped before results were reported. Select Assess repository to retry safely.",
+            message: "The assessment stopped before results were reported. Select Retry assessment to try again safely.",
             findings: [],
         }));
     }

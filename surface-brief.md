@@ -22,15 +22,15 @@
 | Repository assessments | Loopback HTTP + SDK session bridge | One click creates a durable mission and delegates bounded static, read-only inspection in an isolated local clone |
 | Assessment review | Semantic HTML/CSS | Completed findings attach to their repository row or card; one repository panel opens per collection, with nested finding details and executive summaries |
 | Assessment disclosure | Button-controlled region + native details | Repository triggers expose count and expanded state; findings summarize the proposed issue, root cause, severity, confidence, evidence, and dependencies before expansion |
-| Assessment recovery | Compact mission index + temporary repository entry | Completed results outside the current owner, scope, or search remain reachable without moving finding content back into the global mission area |
+| Assessment status | Repository row status note | Starting, running, and failed assessments show their phase or failure reason under the row's assessment button; there is no page-level assessments panel |
 | Issue publication | Inline two-step finding action | A stored draft can become one plain GitHub issue only after repository/title confirmation; loading, retryable error, and durable success stay attached to the finding |
 | Execution boundary | Prompt contract + mission state | Repository code never runs without separate approval and a secrets-free, network-restricted sandbox |
 | Interruption recovery | Durable timestamps + bounded timer | Stale in-progress missions fail with a clear retry action instead of blocking future assessments |
 
 ## Design notes
 
-Repository assessment refinement preserves the ambient hierarchy: active mission status remains compact, while completed evidence appears only beside the repository that produced it. List disclosures span the row; expanded cards span the collection width; narrow layouts stack summary copy before metadata without changing DOM or focus order.
+Repository assessment refinement preserves the ambient hierarchy: assessment status and completed evidence appear only beside the repository that produced them. List disclosures span the row; expanded cards span the collection width; narrow layouts stack summary copy before metadata without changing DOM or focus order.
 
-Ordinary dashboard refreshes preserve meaningful focus inside an open assessment. If filtering removes the repository, the compact mission index offers a temporary repository-attached shortcut rather than duplicating findings globally.
+Ordinary dashboard refreshes preserve meaningful focus inside an open assessment. A repository outside the current owner, scope, or search keeps its results; they reappear when the repository is shown again.
 
 Assessment remains read-only. Issue publication is a separate, explicit post-assessment remote write: the client submits only the durable mission/finding reference, the server derives repository and draft content from validated storage, and no labels, assignees, projects, comments, or automatic publication are permitted.
