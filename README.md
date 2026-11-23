@@ -211,7 +211,11 @@ node scripts/validate.test.mjs
 node scripts/assessment.test.mjs
 node scripts/disclosure.test.mjs
 node scripts/telemetry.test.mjs
+node scripts/decision.test.mjs
+node scripts/decision-service.test.mjs
 ```
+
+To preview the canvas in a browser with live data from your `gh` account, run `node scripts/preview.mjs` and open `http://127.0.0.1:4317/`. Add `--seed-boards` for development-only decision boards. State is kept in `.preview/`. A tool bridge on the next port lets you report assessment or triage results as Copilot would.
 
 For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.
 

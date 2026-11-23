@@ -19,6 +19,11 @@ const assessmentTestPath = join(root, "scripts", "assessment.test.mjs");
 const disclosureTestPath = join(root, "scripts", "disclosure.test.mjs");
 const queueTelemetryPath = join(root, "extension", "queue-telemetry.mjs");
 const telemetryTestPath = join(root, "scripts", "telemetry.test.mjs");
+const decisionCorePath = join(root, "extension", "decision-core.mjs");
+const decisionTestPath = join(root, "scripts", "decision.test.mjs");
+const decisionServicePath = join(root, "extension", "decision-service.mjs");
+const githubAdapterPath = join(root, "extension", "github-adapter.mjs");
+const decisionServiceTestPath = join(root, "scripts", "decision-service.test.mjs");
 
 function requireFile(path, label) {
     if (!existsSync(path)) {
@@ -40,6 +45,11 @@ function requireFile(path, label) {
     [disclosureTestPath, "Assessment disclosure tests"],
     [queueTelemetryPath, "Queue telemetry rules"],
     [telemetryTestPath, "Queue telemetry tests"],
+    [decisionCorePath, "Decision ledger core"],
+    [decisionTestPath, "Decision ledger tests"],
+    [decisionServicePath, "Decision board service"],
+    [githubAdapterPath, "Decision board GitHub adapter"],
+    [decisionServiceTestPath, "Decision board service tests"],
 ].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -232,7 +242,7 @@ if (!scripts.length) {
 scripts.forEach((match, index) => {
     new vm.Script(match[1], { filename: `merge-harbor-inline-${index + 1}.js` });
 });
-[assessmentTestPath, disclosureTestPath, telemetryTestPath].forEach((testPath) => {
+[assessmentTestPath, disclosureTestPath, telemetryTestPath, decisionTestPath, decisionServiceTestPath].forEach((testPath) => {
     const result = spawnSync(process.execPath, [testPath], { encoding: "utf8" });
     if (result.status !== 0) {
         throw new Error(result.stderr || result.stdout || `${relative(root, testPath)} failed.`);

@@ -25,6 +25,8 @@ import {
     repoKey,
     toRepoSummary,
 } from "./queue-telemetry.mjs";
+import { createDecisionStore } from "./decision-core.mjs";
+import { createDecisionService } from "./decision-service.mjs";
 
 const servers = new Map();
 const execFileAsync = promisify(execFile);
@@ -40,6 +42,11 @@ const repositoryTelemetryCache = new Map();
 const repositoryTelemetryCacheTtlMs = 5 * 60 * 1000;
 const missionTimeouts = new Map();
 const issueCreationPromises = new Map();
+const decisionService = createDecisionService({
+    store: createDecisionStore(preferencesDirectory),
+    runGh: ghRaw,
+    broadcast: (event, payload) => broadcastAll(event, payload),
+});
 
 function readPreferences() {
     let preferences;
@@ -101,6 +108,15 @@ async function ghApi(args) {
         windowsHide: true,
     });
     return JSON.parse(stdout);
+}
+
+// Raw stdout for callers that handle empty responses (DELETE) and their own parsing.
+async function ghRaw(args) {
+    const { stdout } = await execFileAsync("gh", ["api", ...args], {
+        maxBuffer: 8 * 1024 * 1024,
+        windowsHide: true,
+    });
+    return stdout;
 }
 
 function ghFailureMessage(error) {
@@ -516,6 +532,7 @@ function renderHtml(defaultView) {
     events.addEventListener("view", (event) => activate(JSON.parse(event.data).view));
     events.addEventListener("missions", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:missions", { detail: JSON.parse(event.data) })));
     events.addEventListener("mission", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:mission", { detail: JSON.parse(event.data) })));
+    events.addEventListener("board", (event) => window.dispatchEvent(new CustomEvent("merge-harbor:board", { detail: JSON.parse(event.data) })));
   })();
 </script>`;
     // Queue definitions live in queue-telemetry.mjs; hand them to the page before its script runs.
@@ -752,6 +769,18 @@ async function startServer(instanceId, defaultView) {
             return;
         }
 
+        if (requestUrl.pathname.startsWith("/api/decision")) {
+            const body = req.method === "POST" ? readJsonBody(req) : Promise.resolve(undefined);
+            body
+                .then((value) => decisionService.handle(req.method, requestUrl.pathname, value, requestUrl.searchParams))
+                .then((result) => {
+                    if (result) writeJson(res, result.statusCode, result.body);
+                    else writeJson(res, 404, { error: "Not found" });
+                })
+                .catch((error) => writeJson(res, 400, { error: error.message }));
+            return;
+        }
+
         if (requestUrl.pathname === "/favicon.ico") {
             res.writeHead(204);
             res.end();
@@ -782,6 +811,19 @@ async function startServer(instanceId, defaultView) {
 
 const session = await joinSession({
     tools: [
+        ...decisionService.tools.map((tool) => ({
+            ...tool,
+            handler: async (args) => {
+                try {
+                    return await tool.handler(args);
+                } catch (error) {
+                    return {
+                        resultType: "failure",
+                        textResultForLlm: `Merge Harbor rejected the request: ${ghFailureMessage(error) === "The authenticated GitHub CLI request failed." ? error.message : ghFailureMessage(error)}`,
+                    };
+                }
+            },
+        })),
         {
             name: "merge_harbor_report_repository_assessment",
             description: "Report progress, failure, or final structured findings for a Merge Harbor repository assessment mission.",
@@ -860,7 +902,7 @@ const session = await joinSession({
                 properties: {
                     defaultView: {
                         type: "string",
-                        enum: ["overview", "convoy", "watchtower"],
+                        enum: ["overview", "convoy", "watchtower", "decisions"],
                     },
                 },
                 additionalProperties: false,
@@ -868,13 +910,13 @@ const session = await joinSession({
             actions: [
                 {
                     name: "show_view",
-                    description: "Switch the open canvas to the Overview (overview), PR flow (convoy), or Needs attention (watchtower) view.",
+                    description: "Switch the open canvas to the Overview (overview), PR flow (convoy), Needs attention (watchtower), or Decisions (decisions) view.",
                     inputSchema: {
                         type: "object",
                         properties: {
                             view: {
                                 type: "string",
-                                enum: ["overview", "convoy", "watchtower"],
+                                enum: ["overview", "convoy", "watchtower", "decisions"],
                             },
                         },
                         required: ["view"],
