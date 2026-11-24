@@ -2111,8 +2111,21 @@ FORM: Ambient command display with direct-action drill-down.
       return `assessment-${String(missionId).replace(/[^A-Za-z0-9_-]/g, "-")}`;
     }
 
+    // The agent host the page runs under (Copilot or Claude), injected by the runtime.
+    function hostName() {
+      return window.mergeHarborHost?.name || "Copilot";
+    }
+
+    // A queued mission is waiting on the agent when the host can't push prompts to it.
+    function missionWaiting(mission) {
+      return mission?.status === "queued" && String(mission.phase ?? "").startsWith("Waiting");
+    }
+
     function assessmentButton(owner, name, className = "repo-action-button", routeToOverview = false) {
       const mission = latestMission(owner, name);
+      if (missionWaiting(mission)) {
+        return `<button type="button" class="${className}" disabled>Queued for ${escapeHtml(hostName())}</button>`;
+      }
       if (mission?.status === "queued" || mission?.status === "in_progress") {
         return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Assessing…</button>`;
       }
@@ -2128,13 +2141,13 @@ FORM: Ambient command display with direct-action drill-down.
         return `<button type="button" class="${className} assessment-toggle" data-review-mission="${escapeHtml(mission.id)}" data-review-repository="${escapeHtml(key)}" aria-expanded="${expanded}" aria-controls="${missionPanelId(mission.id)}">${expanded ? "Hide findings" : `Review findings (${findings.length})${pip}`}</button>`;
       }
       const label = mission?.status === "failed" ? "Retry assessment" : "Assess repository";
-      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through GitHub Copilot. Remote writes are prohibited.">${label}</button>`;
+      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through ${escapeHtml(hostName())}. Remote writes are prohibited.">${label}</button>`;
     }
 
     // Starting, running, and failed assessments report their state in the repository row.
     function assessmentStatusNote(mission) {
       const note = {
-        queued: ["Starting assessment…", mission?.message],
+        queued: [missionWaiting(mission) ? mission.phase : "Starting assessment…", mission?.message],
         in_progress: ["Assessment in progress", mission?.phase || mission?.message],
         failed: ["Assessment failed", mission?.message],
       }[mission?.status];
@@ -3418,7 +3431,7 @@ FORM: Ambient command display with direct-action drill-down.
       if (!boards.length) {
         container.innerHTML = `<div class="decisions-empty">
             <h2>No decision boards yet</h2>
-            <p>Ask Copilot to triage a repository's issues. Merge Harbor fetches the complete issue inventory itself, the repository's Squad proposes exact actions with evidence, and they appear here for you to approve or reject.</p>
+            <p>${escapeHtml(window.mergeHarborHost?.triageHint || `Ask ${hostName()} to triage a repository's issues.`)} Merge Harbor fetches the complete issue inventory itself, the repository's Squad proposes exact actions with evidence, and they appear here for you to approve or reject.</p>
             <p>Triage never changes GitHub. Only approved, still-current actions can be written, and only when you choose to execute them.</p>
           </div>`;
         return;

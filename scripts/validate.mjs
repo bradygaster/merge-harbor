@@ -139,7 +139,13 @@ if (pluginSyntax.status !== 0) {
     throw new Error(pluginSyntax.stderr || pluginSyntax.stdout || "plugin extension entrypoint syntax validation failed.");
 }
 
-const extensionSource = readFileSync(extensionPath, "utf8");
+// The Copilot shell and the shared runtime together form the extension's contract.
+const runtimePath = join(root, "extension", "harbor-runtime.mjs");
+const runtimeSyntax = spawnSync(process.execPath, ["--check", runtimePath], { encoding: "utf8" });
+if (runtimeSyntax.status !== 0) {
+    throw new Error(runtimeSyntax.stderr || runtimeSyntax.stdout || "harbor-runtime.mjs syntax validation failed.");
+}
+const extensionSource = readFileSync(extensionPath, "utf8") + "\n" + readFileSync(runtimePath, "utf8");
 const assessmentCoreSource = readFileSync(assessmentCorePath, "utf8");
 if (!extensionSource.includes('listen(0, "127.0.0.1"')) {
     throw new Error("The canvas server must bind to an ephemeral loopback port.");
