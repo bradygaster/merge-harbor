@@ -1,10 +1,23 @@
 # Merge Harbor
 
-Merge Harbor is a user-level GitHub Copilot canvas for monitoring pull request flow across organizations, building a personal cross-organization repository watchlist, and requesting conservative repository assessments.
+Merge Harbor is a canvas for monitoring pull request flow across organizations, building a personal cross-organization repository watchlist, requesting conservative repository assessments, and approving exact issue actions on a decision board.
 
-![Merge Harbor Overview showing lifecycle queues, repositories, and review actions](docs/images/merge-harbor-overview.png)
+It runs in two agent hosts from one shared runtime:
 
-*Overview combines GitHub lifecycle telemetry, direct action links, personal repositories, and organization search.*
+| Host | Install | How assessments start |
+| --- | --- | --- |
+| **GitHub Copilot** app | This repository, as a Copilot extension ([install](#install-from-the-custom-marketplace)) | Copilot starts them as soon as you select **Assess repository**. |
+| **Claude Code** | [`bradygaster/merge-harbor-claude`](https://github.com/bradygaster/merge-harbor-claude), as a Claude Code plugin | The canvas queues them; run `/merge-harbor:assess` and Claude claims and runs them. |
+
+![Merge Harbor Overview in the Copilot extension, showing lifecycle queues, Act now, and repositories](docs/images/copilot-overview.png)
+
+*Copilot: Overview combines GitHub lifecycle telemetry, direct action links, personal repositories, and organization search.*
+
+![Merge Harbor in Claude Code, with one repository's findings ready and another queued for Claude](docs/images/claude-overview.png)
+
+*Claude Code: the same canvas, served by the plugin's MCP server. squadcaster's assessment was claimed and run by Claude; moonwake is queued until you run `/merge-harbor:assess`.*
+
+Screenshots show the canvas page itself, without the surrounding app window.
 
 ## Prerequisites
 
@@ -82,6 +95,7 @@ Auto-refresh cadence is stored by the canvas page. Updating or reinstalling norm
 - **Overview:** Scan repository-level Blocked, Review, Drafts, Checks, Ready, and Other queues. These categories are mutually exclusive, so each open pull request appears once.
 - **PR flow:** See the organization-wide flow of open pull requests through the same lifecycle.
 - **Needs attention:** Review the highest-leverage recent pull requests and open the matching GitHub action directly.
+- **Decisions:** Review what an agent proposes for each repository's open issues, approve or reject exact revisions, and execute only what you approved. See [Decide on issue triage](#7-decide-on-issue-triage).
 - **List / Cards:** Change repository density without changing assessment behavior.
 - **Refresh / Auto-refresh:** Refresh immediately or select the automatic refresh cadence.
 
@@ -89,12 +103,12 @@ Auto-refresh cadence is stored by the canvas page. Updating or reinstalling norm
 
 Select **Assess repository** from a repository or Needs attention entry.
 
-An assessment creates a durable local mission and asks the current Copilot session to coordinate bounded specialists against an isolated disposable clone or worktree at the exact default-branch commit. By default, assessment is static and read-only:
+An assessment creates a durable local mission and asks the agent (in Copilot, the current session; in Claude Code, `/merge-harbor:assess`) to coordinate bounded specialists against an isolated disposable clone or worktree at the exact default-branch commit. By default, assessment is static and read-only:
 
 - It does not modify the user's existing checkout.
 - It does not run repository tests, builds, scripts, hooks, package installs, package-manager commands, or other repository code.
 - It does not push, create issues or pull requests, change labels, or perform any remote write.
-- Relevant repository content is processed through the GitHub Copilot service; assessment is not offline.
+- Relevant repository content is processed through the agent host's model service (GitHub Copilot or Claude); assessment is not offline.
 - Any code execution requires separate explicit approval and a secrets-free, network-restricted sandbox. A clone or worktree alone is filesystem separation, not execution isolation.
 
 Mission state persists across extension reloads. Interrupted work is recovered into a retryable state instead of blocking future assessments.
@@ -110,11 +124,15 @@ When assessment completes, **Review findings** expands a panel attached to that 
 
 Expand a finding to review its root cause, evidence, dependencies, and complete proposed issue draft. Assessments appear only in their repository's row: while one is starting or running, or if it fails, the row shows its status under the assessment button. To review a repository that is not in the current list, select its owner, search for it, or add it to My repos.
 
+![Claude's assessment of squadcaster, expanded to show root cause, evidence, and the proposed issue](docs/images/claude-findings.png)
+
+*Claude Code: a finding from Claude's read-only assessment of squadcaster, with its evidence and the issue it proposes.*
+
 ### 6. Create an issue explicitly
 
-![Expanded assessment finding showing repository and issue-title confirmation before publication](docs/images/assessment-issue-flow.png)
+![Expanded moonwake finding with the inline confirmation before an issue is created](docs/images/copilot-findings.png)
 
-*Issue creation stays inside the finding and requires a second explicit confirmation.*
+*Copilot: issue creation stays inside the finding and requires a second explicit confirmation.*
 
 Issue publication is separate from the read-only assessment:
 
@@ -128,6 +146,21 @@ Issue publication is separate from the read-only assessment:
 The browser submits only the durable mission and finding reference. The local extension re-reads the completed validated mission and derives the repository, title, and body from stored assessment data. A deterministic hidden marker and persisted issue identity make retries idempotent and reconcile publication after interruption.
 
 This explicit action creates only one plain GitHub issue. It does not add labels, assignees, projects, comments, or any other remote mutation.
+
+### 7. Decide on issue triage
+
+![Decisions view with a repository rail, coverage bar, and proposals grouped by root cause](docs/images/copilot-decisions.png)
+
+*Decisions, shown with development sample boards: coverage per repository, blockers shared across repositories, and proposals that state the exact write.*
+
+Ask the agent to triage a repository (in Claude Code, `/merge-harbor:triage owner/name`). Merge Harbor fetches the complete open-issue inventory itself, and the agent reports proposals grouped by root cause, each with one exact action and its evidence. **Approval to assess is not approval to act:**
+
+- Triage never changes GitHub. Proposals wait for you in **Decisions**.
+- You approve or reject an exact revision. If the agent revises a proposal later, your earlier approval no longer applies and it asks again.
+- Batch decisions show the frozen list you are confirming.
+- **Execute** lists every write first, re-checks that each issue is unchanged and that you are still the signed-in account, and writes only approved actions. Retries never write twice.
+
+Every inventory issue must end up with a proposal, a no-action result, or a blocked result, and the coverage bar shows any that are still untriaged.
 
 ## Security and data handling
 
@@ -198,8 +231,11 @@ Uninstall behavior is app-owned. Back up this file before uninstalling if preser
 - Extension manifest format version: `1`
 - Plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
 - Canvas implementation: `extension/`
+- Shared runtime: `extension/harbor-runtime.mjs` and the modules it imports are host-neutral. `extension/extension.mjs` is the Copilot host; [`merge-harbor-claude`](https://github.com/bradygaster/merge-harbor-claude) syncs the same files as its Claude Code host.
 
 The marketplace catalog installs the repository-root Agent Plugin described by `plugin.json`. Its Copilot extension contribution forwards to the existing `extension/` implementation rather than maintaining a second runtime.
+
+Change the shared runtime here, then run `node scripts/sync-runtime.mjs` in `merge-harbor-claude` to bring the Claude plugin up to date.
 
 ## Development
 

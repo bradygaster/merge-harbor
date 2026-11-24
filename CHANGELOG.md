@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The same runtime powers the Claude Code plugin in `bradygaster/merge-harbor-claude`
+- Hosts that cannot push prompts leave assessments queued as "Waiting for <host>" until the agent claims them, and the canvas names the host it runs under
+- Added a light/dark/auto theme picker; the canvas also follows live theme changes
+- Replaced the README screenshots with current Copilot and Claude Code captures, and documented the Decisions view
 - Added the decision ledger for the organization-wide decision board (#5): complete issue inventory with coverage gaps, revisioned proposals, approvals bound to exact revisions, frozen batch manifests, an execution boundary that refuses stale or unapproved actions, and reconciliation of uncertain writes. See `docs/decision-board.md`
 - Added decision-board triage tools (`merge_harbor_get_issue_inventory`, `merge_harbor_report_issue_triage`), a `gh`-backed execution adapter, and local routes for decisions, batches, execution, and cancellation. The wiring lives in host-neutral `extension/decision-service.mjs`
 - Added a Decisions view: per-repository boards with coverage, proposals grouped by shared root cause, exact plain-language actions, text-and-shape state badges, frozen batch confirmation, and a separate execution confirmation that lists every write
