@@ -5,6 +5,7 @@ import {
     queueQualifiers,
     queueSearches,
     repoKey,
+    runningChecksCount,
     toRepoSummary,
 } from "../extension/queue-telemetry.mjs";
 
@@ -59,6 +60,15 @@ assert(metrics.blocked === 5, "Blocked must combine failing checks and requested
 assert(metrics.other === 3, "Other must hold the open pull requests no queue claimed.");
 assert(Object.values(metrics).reduce((sum, value) => sum + value, 0) === 20, "Queue metrics must sum to the open total.");
 assert(queueMetrics({ failing: 30 }, 10).other === 0, "Other must never be negative.");
+
+// GitHub search matches status:pending for PRs with no CI at all; those must not count as running.
+const noCi = { statusCheckRollup: null };
+const running = { statusCheckRollup: { state: "PENDING" } };
+const expected = { statusCheckRollup: { state: "EXPECTED" } };
+assert(runningChecksCount({ issueCount: 4, nodes: [noCi, noCi, noCi, noCi] }) === 0, "PRs without any checks must not count as checks running.");
+assert(runningChecksCount({ issueCount: 3, nodes: [noCi, running, expected] }) === 2, "Only pending or expected rollups count as checks running.");
+assert(runningChecksCount({ issueCount: 150, nodes: [running, noCi] }) === 149, "Matches beyond the fetched page are counted as reported.");
+assert(runningChecksCount(undefined) === 0, "A missing search counts as zero.");
 
 // The count searches and the link qualifiers describe the same queues.
 for (const key of ["review", "drafts", "checks", "ready"]) {

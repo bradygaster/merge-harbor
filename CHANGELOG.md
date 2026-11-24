@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the Checks queue counting pull requests with no CI as "checks running": GitHub search reports `status:pending` for a commit with no statuses, so the count now keeps only PRs whose check rollup is pending
 - Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The same runtime powers the Claude Code plugin in `bradygaster/merge-harbor-claude`
 - Hosts that cannot push prompts leave assessments queued as "Waiting for <host>" until the agent claims them, and the canvas names the host it runs under
 - Added a light/dark/auto theme picker; the canvas also follows live theme changes

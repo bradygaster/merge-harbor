@@ -31,6 +31,7 @@ import {
     queueMetrics,
     queueQualifiers,
     queueSearches,
+    runningChecksCount,
     repoKey,
     toRepoSummary,
 } from "./queue-telemetry.mjs";
@@ -358,7 +359,13 @@ export function createHarborRuntime({ dataDirectory, host }) {
         const fields = chunk.map((repo, index) => {
             const base = `repo:${owner}/${repo.name} is:pr is:open`;
             return Object.entries(queueSearches)
-                .map(([key, qualifier]) => `r${index}_${key}: search(query:${JSON.stringify(`${base} ${qualifier}`)}, type:ISSUE, first:1) { issueCount }`)
+                .map(([key, qualifier]) => {
+                    const search = `r${index}_${key}: search(query:${JSON.stringify(`${base} ${qualifier}`)}, type:ISSUE`;
+                    // "checks" needs each PR's rollup to drop PRs that have no CI at all.
+                    return key === "checks"
+                        ? `${search}, first:100) { issueCount nodes { ... on PullRequest { statusCheckRollup { state } } } }`
+                        : `${search}, first:1) { issueCount }`;
+                })
                 .join("\n");
         }).join("\n");
         try {
@@ -366,7 +373,10 @@ export function createHarborRuntime({ dataDirectory, host }) {
             const data = result.data ?? {};
             return chunk.map((repo, index) => {
                 const counts = Object.fromEntries(Object.keys(queueSearches)
-                    .map((key) => [key, data[`r${index}_${key}`]?.issueCount ?? 0]));
+                    .map((key) => {
+                        const search = data[`r${index}_${key}`];
+                        return [key, key === "checks" ? runningChecksCount(search) : search?.issueCount ?? 0];
+                    }));
                 return [repo.name, queueMetrics(counts, repo.prs)];
             });
         } catch {
