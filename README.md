@@ -7,7 +7,7 @@ It runs in two agent hosts from one shared runtime:
 | Host | Install | How assessments start |
 | --- | --- | --- |
 | **GitHub Copilot** app | This repository, as a Copilot extension ([install](#install-from-the-custom-marketplace)) | Copilot starts them as soon as you select **Assess repository**. |
-| **Claude Code** | [`bradygaster/merge-harbor-claude`](https://github.com/bradygaster/merge-harbor-claude), as a Claude Code plugin | The canvas queues them; run `/merge-harbor:assess` and Claude claims and runs them. |
+| **Claude Code** | This repository, as a Claude Code plugin ([install](#install-in-claude-code)) | The canvas queues them; run `/merge-harbor:assess` and Claude claims and runs them. |
 
 ![Merge Harbor Overview in the Copilot extension, showing lifecycle queues, Act now, and repositories](docs/images/copilot-overview.png)
 
@@ -21,7 +21,7 @@ Screenshots show the canvas page itself, without the surrounding app window.
 
 ## Prerequisites
 
-- GitHub Copilot desktop app with custom plugins and extension canvases enabled
+- GitHub Copilot desktop app with custom plugins and extension canvases enabled (for Claude Code, see [Install in Claude Code](#install-in-claude-code))
 - Read access to [`bradygaster/merge-harbor`](https://github.com/bradygaster/merge-harbor)
 - [GitHub CLI](https://cli.github.com/) installed and authenticated as the account whose repositories and organizations you want to view
 
@@ -72,6 +72,46 @@ Then start a new session and ask Copilot to **Open Merge Harbor**.
 
 The lifecycle actions exposed by the app can vary by build. Do not edit the installed package by hand as a substitute for marketplace installation or update.
 
+## Install in Claude Code
+
+The Claude Code plugin lives in this repository beside the Copilot extension and runs the same canvas and runtime.
+
+| | Claude Code | GitHub Copilot |
+| --- | --- | --- |
+| Canvas | Opened by `/merge-harbor:open` at a local `127.0.0.1` URL; view it in any browser or the Claude desktop app's browser pane | Opens as a canvas inside the Copilot app |
+| Assessments | The canvas queues them; `/merge-harbor:assess` claims and runs them | Start immediately in the current Copilot session |
+| Issue triage | `/merge-harbor:triage owner/name` | Ask Copilot to triage a repository |
+| Host | `.claude-plugin/` and `claude/` | `plugin.json` and `extension/extension.mjs` |
+
+Requirements:
+
+- [Claude Code](https://claude.com/claude-code), CLI or desktop app
+- Node.js 20 or later on `PATH` (the plugin runs a small dependency-free MCP server)
+- [GitHub CLI](https://cli.github.com/), signed in as the account whose repositories you want to see: `gh auth status`
+
+In Claude Code:
+
+```text
+/plugin marketplace add bradygaster/merge-harbor
+/plugin install merge-harbor@merge-harbor
+```
+
+Confirm the install in the plugin panel, then run `/reload-plugins` (or start a new session) so the plugin's MCP server starts. To install from a local checkout instead, use `/plugin marketplace add ./merge-harbor`.
+
+To update, run `/plugin marketplace update merge-harbor`, then `/reload-plugins`. Claude Code caches the plugin by its version, so a new release reaches you only when the version in `.claude-plugin/plugin.json` changes.
+
+| Command | What it does |
+| --- | --- |
+| `/merge-harbor:open [view]` | Starts the canvas and gives you its URL. Views: `overview`, `convoy` (PR flow), `watchtower` (Needs attention), `decisions`. |
+| `/merge-harbor:assess` | Claims assessments you queued with **Assess repository** and runs them, read-only. |
+| `/merge-harbor:triage owner/name` | Triages a repository's open issues onto the decision board for you to approve. |
+
+The canvas stays available while the Claude Code session is open.
+
+A web page can't hand Claude a prompt, so when you select **Assess repository** the row shows **Queued for Claude** until you run `/merge-harbor:assess`. Claude then claims each queued mission once and runs it under the same read-only rules described in [Assess a repository safely](#4-assess-a-repository-safely).
+
+State (My repos, assessment missions, and decision boards) is kept in Claude Code's plugin data directory, `~/.claude/plugins/data/merge-harbor-merge-harbor/`. Set `MERGE_HARBOR_HOME` to use another directory; `~/.claude/merge-harbor/` is used only when the server runs outside Claude Code. It is separate from the Copilot extension's data. Claude Code deletes the plugin data directory when you uninstall the plugin, unless you uninstall with `claude plugin uninstall merge-harbor --keep-data`.
+
 ## Use Merge Harbor
 
 ### 1. Choose an owner
@@ -88,7 +128,7 @@ Add repositories from different owners to **My repos** for one persistent person
 $COPILOT_HOME/extensions/merge-harbor/artifacts/preferences.json
 ```
 
-Auto-refresh cadence is stored by the canvas page. Updating or reinstalling normally preserves these settings unless the app removes the extension artifact directory or browser storage.
+In Claude Code, preferences are kept in the plugin's data directory instead (see [Install in Claude Code](#install-in-claude-code)). Auto-refresh cadence is stored by the canvas page. Updating normally preserves these settings unless the app removes the extension artifact directory or browser storage. In Claude Code, uninstalling deletes them unless you pass `--keep-data`.
 
 ### 3. Move between operational views
 
@@ -169,7 +209,7 @@ Every inventory issue must end up with a proposal, a no-action result, or a bloc
 - The extension requires no Merge Harbor backend.
 - Selected-owner and My repos preferences remain local.
 - Assessment mission state, disposable clones or worktrees, and approved experimental file changes remain local.
-- Relevant repository content used by an assessment is processed through the GitHub Copilot service.
+- Relevant repository content used by an assessment is processed through the agent host's model service (GitHub Copilot or Claude).
 - Assessment remains read-only by default; issue publication requires the separate two-step action described above.
 
 ## Troubleshooting
@@ -229,13 +269,16 @@ Uninstall behavior is app-owned. Back up this file before uninstalling if preser
 
 - Plugin release version: `0.3.0`
 - Extension manifest format version: `1`
-- Plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
+- Copilot plugin layout: Agent Plugins 1.0 `plugin.json`, `.github/plugin/marketplace.json`, and `com.github.copilot/extensions/merge-harbor/`
 - Canvas implementation: `extension/`
-- Shared runtime: `extension/harbor-runtime.mjs` and the modules it imports are host-neutral. `extension/extension.mjs` is the Copilot host; [`merge-harbor-claude`](https://github.com/bradygaster/merge-harbor-claude) syncs the same files as its Claude Code host.
+- Shared runtime: `extension/harbor-runtime.mjs` and the modules it imports are host-neutral. `extension/extension.mjs` is the Copilot host.
+- Claude Code plugin layout: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (marketplace and plugin both named `merge-harbor`, plugin source `./`)
+- Claude Code host: `claude/server/mcp.mjs`, a dependency-free MCP stdio server that exposes the runtime's tools plus `merge_harbor_open_canvas`, `merge_harbor_show_view`, `merge_harbor_get_summary`, and `merge_harbor_claim_assessments`
+- Claude Code commands: `claude/commands/` (`open.md`, `assess.md`, `triage.md`)
 
-The marketplace catalog installs the repository-root Agent Plugin described by `plugin.json`. Its Copilot extension contribution forwards to the existing `extension/` implementation rather than maintaining a second runtime.
+The Copilot marketplace catalog installs the repository-root Agent Plugin described by `plugin.json`. Its Copilot extension contribution forwards to the existing `extension/` implementation rather than maintaining a second runtime.
 
-Change the shared runtime here, then run `node scripts/sync-runtime.mjs` in `merge-harbor-claude` to bring the Claude plugin up to date.
+Both hosts import `extension/harbor-runtime.mjs` directly from this repository; nothing is copied or synced. A runtime change reaches both hosts in the same commit.
 
 ## Development
 
@@ -253,7 +296,13 @@ node scripts/decision-service.test.mjs
 
 To preview the canvas in a browser with live data from your `gh` account, run `node scripts/preview.mjs` and open `http://127.0.0.1:4317/`. Add `--seed-boards` for development-only decision boards. State is kept in `.preview/`. A tool bridge on the next port lets you report assessment or triage results as Copilot would.
 
-For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`.
+`node scripts/validate.mjs` also runs `scripts/mcp.test.mjs`, which drives the Claude Code MCP server over stdio the way Claude Code does. To play Claude's side by hand, run `node scripts/claude-dev.mjs`. It starts the MCP server with data in `.preview/claude/` and exposes its tools at `http://127.0.0.1:4327/tools/<name>`:
+
+```powershell
+curl -X POST http://127.0.0.1:4327/tools/merge_harbor_open_canvas -d "{}"
+```
+
+For local extension development, copy `extension/` to `$COPILOT_HOME/extensions/merge-harbor/`, reload extensions, and open the `merge-harbor` canvas. For plugin packaging changes, add this repository as a local or GitHub-hosted marketplace and install `merge-harbor@merge-harbor`; in Claude Code, use `/plugin marketplace add ./merge-harbor` from the parent folder.
 
 Reference documentation:
 

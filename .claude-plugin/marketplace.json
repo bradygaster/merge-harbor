@@ -1,0 +1,18 @@
+{
+  "name": "merge-harbor",
+  "owner": {
+    "name": "Brady Gaster",
+    "url": "https://github.com/bradygaster"
+  },
+  "metadata": {
+    "description": "Merge Harbor for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "merge-harbor",
+      "source": "./",
+      "description": "Pull request flow, read-only repository assessments, and a human-approved decision board for GitHub issues.",
+      "version": "0.3.0"
+    }
+  ]
+}

@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Fixed the Checks queue counting pull requests with no CI as "checks running": GitHub search reports `status:pending` for a commit with no statuses, so the count now keeps only PRs whose check rollup is pending
-- Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The same runtime powers the Claude Code plugin in `bradygaster/merge-harbor-claude`
+- Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The runtime is shared by the Copilot host and a Claude Code plugin in this repository
+- Added the Claude Code plugin (`.claude-plugin/`, `claude/`): MCP server, `/merge-harbor:open`, `/merge-harbor:assess`, `/merge-harbor:triage`; install with `/plugin marketplace add bradygaster/merge-harbor`
 - Hosts that cannot push prompts leave assessments queued as "Waiting for <host>" until the agent claims them, and the canvas names the host it runs under
 - Added a light/dark/auto theme picker; the canvas also follows live theme changes
 - Replaced the README screenshots with current Copilot and Claude Code captures, and documented the Decisions view

@@ -1,0 +1,20 @@
+{
+  "name": "merge-harbor",
+  "version": "0.3.0",
+  "description": "Merge Harbor for Claude Code: pull request flow across your GitHub repositories, read-only repository assessments, and a decision board where you approve exact issue actions.",
+  "author": {
+    "name": "Brady Gaster",
+    "url": "https://github.com/bradygaster"
+  },
+  "homepage": "https://github.com/bradygaster/merge-harbor",
+  "repository": "https://github.com/bradygaster/merge-harbor",
+  "license": "MIT",
+  "keywords": ["github", "pull-requests", "triage", "repository-assessment", "decision-board"],
+  "commands": "./claude/commands/",
+  "mcpServers": {
+    "merge-harbor": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/claude/server/mcp.mjs"]
+    }
+  }
+}
