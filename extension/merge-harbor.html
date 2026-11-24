@@ -12,11 +12,27 @@ FORM: Ambient command display with direct-action drill-down.
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Merge Harbor — Ambient merge operations</title>
   <script>
+    // Theme order: ?scoutTheme, then the viewer's saved choice, then the system/host theme (followed live).
     (() => {
+      const valid = value => value === "dark" || value === "light";
       const param = new URLSearchParams(window.location.search).get("scoutTheme");
-      const theme =
-        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.setAttribute("data-theme", theme);
+      const query = window.matchMedia("(prefers-color-scheme: dark)");
+      let saved = "auto";
+      try { saved = localStorage.getItem("merge-harbor-theme") || "auto"; } catch {}
+      const apply = () => {
+        const choice = valid(param) ? param : saved;
+        document.documentElement.setAttribute("data-theme", valid(choice) ? choice : (query.matches ? "dark" : "light"));
+      };
+      window.mergeHarborTheme = {
+        get: () => (valid(saved) ? saved : "auto"),
+        set: value => {
+          saved = valid(value) ? value : "auto";
+          try { localStorage.setItem("merge-harbor-theme", saved); } catch {}
+          apply();
+        },
+      };
+      apply();
+      query.addEventListener("change", apply);
     })();
   </script>
   <style>
@@ -1887,6 +1903,11 @@ FORM: Ambient command display with direct-action drill-down.
           <option value="120000">2 min</option>
           <option value="300000">5 min</option>
         </select>
+        <select id="theme-select" class="control" data-help="Follow the system theme, or keep Merge Harbor light or dark" aria-label="Color theme">
+          <option value="auto">Auto theme</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
       </div>
       <nav class="view-switcher" aria-label="Display view">
         <button type="button" aria-selected="true" data-view="overview" data-help="See fleet urgency, the full pull request distribution, and the busiest repositories">Overview</button>
@@ -3044,6 +3065,10 @@ FORM: Ambient command display with direct-action drill-down.
     }
     document.getElementById("auto-refresh").addEventListener("change", saveRefreshPreferences);
     document.getElementById("refresh-interval").addEventListener("change", saveRefreshPreferences);
+
+    const themeSelect = document.getElementById("theme-select");
+    themeSelect.value = window.mergeHarborTheme.get();
+    themeSelect.addEventListener("change", () => window.mergeHarborTheme.set(themeSelect.value));
 
     const tooltip = document.getElementById("tooltip");
     let tooltipTarget;
