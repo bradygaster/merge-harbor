@@ -1066,18 +1066,12 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .metric-switch.zero::before { background: var(--border-color-default, var(--cp-border-strong)); }
     .metric-switch.zero strong { color: var(--text-color-muted, var(--cp-text-muted)); font-weight: 400; }
-    .metric-switch.blocked { --metric-color: #cf222e; }
-    .metric-switch.review { --metric-color: #0969da; }
-    .metric-switch.drafts { --metric-color: #8250df; }
-    .metric-switch.checks { --metric-color: #bc4c00; }
-    .metric-switch.ready { --metric-color: #1a7f37; }
-    .metric-switch.other { --metric-color: #bf3989; }
-    html[data-theme="dark"] .metric-switch.blocked { --metric-color: #f85149; }
-    html[data-theme="dark"] .metric-switch.review { --metric-color: #4493f8; }
-    html[data-theme="dark"] .metric-switch.drafts { --metric-color: #ab7df8; }
-    html[data-theme="dark"] .metric-switch.checks { --metric-color: #db6d28; }
-    html[data-theme="dark"] .metric-switch.ready { --metric-color: #3fb950; }
-    html[data-theme="dark"] .metric-switch.other { --metric-color: #db61a2; }
+    .metric-switch.blocked { --metric-color: var(--mh-q-blocked); }
+    .metric-switch.review { --metric-color: var(--mh-q-review); }
+    .metric-switch.drafts { --metric-color: var(--mh-q-drafts); }
+    .metric-switch.checks { --metric-color: var(--mh-q-checks); }
+    .metric-switch.ready { --metric-color: var(--mh-q-ready); }
+    .metric-switch.other { --metric-color: var(--mh-q-other); }
     .metric-unavailable {
       grid-area: track;
       min-height: 44px;
@@ -1878,6 +1872,387 @@ FORM: Ambient command display with direct-action drill-down.
       .proposal-side { grid-column: 2; justify-items: start; }
       .proposal-side .decision-actions { justify-content: flex-start; }
     }
+    /* == Identity layer ===================================================
+       Flat, quiet, square-cornered surfaces; Segoe UI Variable with light
+       display numerals; Cascadia for small captions; one deep purple for
+       every selected, focused, or primary thing. Tokens are set on
+       html[data-theme] so they hold even when a host injects Primer
+       variables on :root.
+       ===================================================================== */
+    html[data-theme="light"],
+    html[data-theme="dark"] {
+      --mh-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --mh-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --mh-mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+      --radius-small: 2px;
+      --radius-medium: 2px;
+      --radius-large: 2px;
+      --radius-full: 2px;
+      --font-sans: var(--mh-sans);
+      --font-mono: var(--mh-mono);
+      --shadow-inset: none;
+      --shadow-xsmall: none;
+    }
+    html[data-theme="light"] {
+      --mh-page: #f7f7f7;
+      --mh-accent: #5c2d91;
+      --mh-accent-hover: #4b2479;
+      --mh-accent-line: #5c2d91;
+      --mh-accent-ink: #5d438e;
+      --mh-accent-wash: #f1ebf8;
+      --mh-mast: linear-gradient(133deg, #f4fafd 47%, #f4e6f5 100%);
+      --mh-q-blocked: #c50f1f;
+      --mh-q-review: #0f6cbd;
+      --mh-q-drafts: #7752b8;
+      --mh-q-checks: #bc4b09;
+      --mh-q-ready: #107c10;
+      --mh-q-other: #03787c;
+
+      --cp-bg: #f7f7f7;
+      --cp-bg-elevated: #f7f7f7;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f2f2f2;
+      --cp-border: #e6e6e6;
+      --cp-border-strong: #8a8a94;
+      --cp-text: #191919;
+      --cp-text-muted: #616161;
+      --cp-text-soft: #616161;
+      --cp-accent: #5c2d91;
+      --cp-accent-hover: #4b2479;
+      --cp-accent-soft: #f1ebf8;
+      --cp-accent-fg: #ffffff;
+      --cp-success: #107c10;
+      --cp-danger: #c50f1f;
+      --cp-warning: #8a5300;
+      --cp-link: #5d438e;
+      --cp-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+
+      --background-color-default: #ffffff;
+      --background-color-muted: #f2f2f2;
+      --background-color-hover: #f0edf6;
+      --background-color-input: #ffffff;
+      --background-color-selected: #f1ebf8;
+      --background-color-disabled: #f2f2f2;
+      --background-color-button-default: #ffffff;
+      --background-color-button-default-hover: #f0edf6;
+      --background-color-emphasis: #262626;
+      --background-color-accent-emphasis: #5c2d91;
+      --background-color-accent-muted: #f1ebf8;
+      --background-color-success-emphasis: #107c10;
+      --background-color-danger-emphasis: #c50f1f;
+      --background-color-danger-muted: #fdf3f4;
+      --background-color-attention-muted: #fff9f0;
+      --border-color-default: #d6d6dc;
+      --border-color-muted: #e6e6e6;
+      --border-color-control: #8a8a94;
+      --border-color-accent: #5c2d91;
+      --border-color-accent-emphasis: #5c2d91;
+      --border-color-accent-muted: #d3c4ea;
+      --border-color-success-emphasis: #107c10;
+      --border-color-danger: #c50f1f;
+      --border-color-danger-emphasis: #c50f1f;
+      --border-color-attention-emphasis: #c98a1c;
+      --text-color-default: #191919;
+      --text-color-muted: #616161;
+      --text-color-disabled: #8a8a8a;
+      --text-color-link: #5d438e;
+      --text-color-accent: #5d438e;
+      --text-color-success: #107c10;
+      --text-color-danger: #c50f1f;
+      --text-color-attention: #8a5300;
+      --text-color-on-emphasis: #ffffff;
+      --color-focus-outline: #5c2d91;
+      --underlineNav-borderColor-active: #5c2d91;
+      --shadow-small: 0 8px 24px rgba(0, 0, 0, 0.14);
+    }
+    html[data-theme="dark"] {
+      --mh-page: #1f1f1f;
+      --mh-accent: #6f42c1;
+      --mh-accent-hover: #7d52cf;
+      --mh-accent-line: #9f7ee8;
+      --mh-accent-ink: #b9a2f0;
+      --mh-accent-wash: rgba(159, 126, 232, 0.14);
+      --mh-mast: linear-gradient(133deg, #252526 55%, #2c2536 100%);
+      --mh-q-blocked: #ff99a4;
+      --mh-q-review: #62abf5;
+      --mh-q-drafts: #b9a2f0;
+      --mh-q-checks: #f7894a;
+      --mh-q-ready: #6ccb5f;
+      --mh-q-other: #4bc0c4;
+
+      --cp-bg: #1f1f1f;
+      --cp-bg-elevated: #1f1f1f;
+      --cp-surface: #252526;
+      --cp-surface-soft: #2d2d30;
+      --cp-border: #333337;
+      --cp-border-strong: #777783;
+      --cp-text: #f1f1f1;
+      --cp-text-muted: #a8a8b0;
+      --cp-text-soft: #a8a8b0;
+      --cp-accent: #6f42c1;
+      --cp-accent-hover: #7d52cf;
+      --cp-accent-soft: rgba(159, 126, 232, 0.14);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #6ccb5f;
+      --cp-danger: #ff99a4;
+      --cp-warning: #f2c661;
+      --cp-link: #b9a2f0;
+      --cp-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+      --background-color-default: #252526;
+      --background-color-muted: #2d2d30;
+      --background-color-hover: #3e3e40;
+      --background-color-input: #1f1f1f;
+      --background-color-selected: rgba(159, 126, 232, 0.14);
+      --background-color-disabled: #2d2d30;
+      --background-color-button-default: #2d2d30;
+      --background-color-button-default-hover: #3e3e40;
+      --background-color-emphasis: #3e3e40;
+      --background-color-accent-emphasis: #6f42c1;
+      --background-color-accent-muted: rgba(159, 126, 232, 0.12);
+      --background-color-success-emphasis: #107c10;
+      --background-color-danger-emphasis: #c50f1f;
+      --background-color-danger-muted: rgba(255, 153, 164, 0.08);
+      --background-color-attention-muted: rgba(242, 198, 97, 0.07);
+      --border-color-default: #3f3f46;
+      --border-color-muted: #333337;
+      --border-color-control: #777783;
+      --border-color-accent: #9f7ee8;
+      --border-color-accent-emphasis: #9f7ee8;
+      --border-color-accent-muted: rgba(159, 126, 232, 0.4);
+      --border-color-success-emphasis: #3f9a3a;
+      --border-color-danger: #ff99a4;
+      --border-color-danger-emphasis: #e0606e;
+      --border-color-attention-emphasis: #b8902f;
+      --text-color-default: #f1f1f1;
+      --text-color-muted: #a8a8b0;
+      --text-color-disabled: #75757d;
+      --text-color-link: #b9a2f0;
+      --text-color-accent: #b9a2f0;
+      --text-color-success: #6ccb5f;
+      --text-color-danger: #ff99a4;
+      --text-color-attention: #f2c661;
+      --text-color-on-emphasis: #ffffff;
+      --color-focus-outline: #9f7ee8;
+      --underlineNav-borderColor-active: #9f7ee8;
+      --shadow-small: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Flat page, quiet type. */
+    body {
+      background: var(--mh-page);
+      font-family: var(--mh-sans);
+      letter-spacing: -0.005em;
+    }
+    .app { background: transparent; }
+    button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--color-focus-outline);
+      outline-offset: 2px;
+    }
+    ::selection { background: var(--mh-accent-wash); }
+
+    /* Masthead: a soft wash, a purple hairline on top. */
+    .topbar {
+      background: var(--mh-mast);
+      border-bottom: 1px solid var(--border-color-default);
+      box-shadow: inset 0 3px 0 var(--mh-accent);
+    }
+    .brand, .org-controls, .fleet-health { background: transparent; }
+    .brand { padding: 16px 24px 12px; }
+    h1 {
+      font-family: var(--mh-display);
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    .subline { margin-top: 3px; color: var(--text-color-muted); }
+    .org-controls .control { background: var(--background-color-input); }
+    .auto-refresh input,
+    .proposal input[type="checkbox"] { accent-color: var(--mh-accent); }
+    .fleet-health { padding: 10px 24px; }
+    .fleet-health:hover { background: var(--background-color-hover); }
+    .health-number {
+      font-family: var(--mh-display);
+      font-size: 40px;
+      font-weight: 350;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .health-copy strong { font-weight: 600; letter-spacing: -0.01em; }
+
+    /* Navigation: underline tabs, purple when selected. */
+    .view-switcher {
+      padding: 0 14px;
+      border-top: 1px solid var(--border-color-muted);
+      background: transparent;
+    }
+    .view-switcher button { color: var(--text-color-muted); }
+    .view-switcher button:hover { color: var(--text-color-default); background: var(--background-color-hover); }
+    .view-switcher button[aria-selected="true"] { color: var(--text-color-default); font-weight: 600; }
+    .view-switcher button[aria-selected="true"]::after,
+    .repo-scope-tab[aria-selected="true"]::after {
+      height: 2px;
+      border-radius: 0;
+      background: var(--mh-accent-line);
+    }
+    .view-count {
+      display: inline-block;
+      min-width: 18px;
+      background: var(--mh-accent);
+      color: #ffffff;
+      font-family: var(--mh-mono);
+      font-size: 11px;
+      line-height: 17px;
+      text-align: center;
+    }
+    .view-count[hidden] { display: none; }
+    .repo-scope-bar { background: var(--background-color-default); }
+    .repo-scope-tab { color: var(--text-color-muted); font-weight: 400; }
+    .repo-scope-tab[aria-selected="true"] { color: var(--text-color-default); font-weight: 600; }
+    .repo-scope-count { font-family: var(--mh-mono); font-size: 11px; }
+    .screen-head { background: transparent; }
+    .screen-head strong {
+      font-family: var(--mh-display);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .repo-search, .repo-collection, .load-more { background: transparent; }
+
+    /* Headings: Display cut, semibold, tight tracking. */
+    .ambient-panel h2,
+    .flow-stage-head h2,
+    .attention-head h2,
+    .decision-head h2,
+    .assessment-panel-head h2,
+    .decisions-empty h2,
+    .repo-empty h2 {
+      font-family: var(--mh-display);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .ambient-panel h2 { font-size: 18px; margin-bottom: 6px; }
+    .ambient-panel > p { line-height: 18px; }
+
+    /* Big numerals in the light Display weight. */
+    .ambient-number,
+    .distribution-total strong,
+    .flow-stage-head strong {
+      font-family: var(--mh-display);
+      font-weight: 350;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .ambient-status strong {
+      font-family: var(--mh-display);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    /* Small captions in Cascadia. */
+    .distribution-total span,
+    .repo-count span,
+    .finding-group-heading,
+    .decision-rail-section h2 {
+      font-family: var(--mh-mono);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .repo-count {
+      font-family: var(--mh-display);
+      font-size: 20px;
+      font-weight: 350;
+      letter-spacing: -0.02em;
+    }
+    .metric-switch strong { font-variant-numeric: tabular-nums; }
+    .metric-switch.zero::before {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px var(--border-color-control);
+    }
+    .metric-switch:hover { background: var(--background-color-hover); }
+
+    /* Selected and primary: one purple. */
+    .layout-toggle button[aria-pressed="true"] {
+      background: var(--mh-accent-wash);
+      color: var(--mh-accent-ink);
+      box-shadow: inset 0 -2px 0 var(--mh-accent-line);
+    }
+    .repo-action-button.primary,
+    .decision-button.write,
+    .issue-publication button.primary {
+      border-color: var(--mh-accent);
+      background: var(--mh-accent);
+      color: #ffffff;
+    }
+    .repo-action-button.primary:hover,
+    .decision-button.write:hover,
+    .issue-publication button.primary:hover { background: var(--mh-accent-hover); }
+    .board-pick[aria-current="true"] {
+      border-color: var(--border-color-accent-emphasis);
+      background: var(--mh-accent-wash);
+      box-shadow: inset 3px 0 0 var(--mh-accent-line);
+    }
+    .proposal.selected {
+      border-color: var(--border-color-accent-emphasis);
+      background: var(--mh-accent-wash);
+    }
+    .decision-filters button[aria-pressed="true"] {
+      border-color: transparent;
+      background: var(--mh-accent-wash);
+      color: var(--mh-accent-ink);
+    }
+    .coverage-bar { height: 6px; }
+    .coverage-bar .proposed { background: var(--mh-accent-line); }
+
+    /* Act now and Needs attention ranks: square chips. */
+    .ambient-action-rank,
+    .attention-rank {
+      border-width: 1px;
+      border-radius: var(--radius-small);
+      font-family: var(--mh-mono);
+      font-size: 12px;
+      font-weight: 400;
+    }
+    .ambient-action { border-color: var(--border-color-muted); }
+    .ambient-action:hover { border-color: var(--border-color-default); }
+
+    /* Repository and decision surfaces. */
+    .repo-entry-title a { letter-spacing: -0.015em; }
+    .board-pick strong,
+    .shared-blocker strong { font-weight: 600; letter-spacing: -0.01em; }
+    .decision-head h2 { font-size: 20px; }
+    .decision-toolbar { background: var(--mh-page); }
+    .decision-alert { border-left-width: 3px; }
+    .proposal-group > h3 {
+      font-family: var(--mh-display);
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .proposal { border-color: var(--border-color-muted); }
+    .flow-stage { border-top: 2px solid var(--mh-accent-line); }
+    .attention-head { background: var(--background-color-muted); }
+    .attention-age { font-family: var(--mh-mono); }
+
+    /* Tooltip and footer. */
+    .tooltip { border-radius: var(--radius-small); }
+    .spinner { border-top-color: var(--mh-accent-line); }
+    .footer {
+      font-family: var(--mh-mono);
+      font-size: 11.5px;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 760px) {
+      .brand { padding: 14px 16px 10px; }
+      .org-controls, .fleet-health { border-top-color: var(--border-color-muted); }
+      .health-number { font-size: 34px; }
+      .view-switcher { padding: 0 6px; }
+      .view-switcher button { font-size: 13px; }
+      .view-switcher button[aria-selected="true"]::after { right: 8px; left: 8px; }
+      .ambient-status { min-height: 0; padding: 4px 0; }
+    }
   </style>
 </head>
 <body>
@@ -2510,12 +2885,12 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     const metricDefinitions = [
-      { key: "blocked", label: "Blocked", color: "#cf222e" },
-      { key: "review", label: "Review", color: "#0969da" },
-      { key: "drafts", label: "Drafts", color: "#8250df" },
-      { key: "checks", label: "Checks", color: "#bc4c00" },
-      { key: "ready", label: "Ready", color: "#1a7f37" },
-      { key: "other", label: "Other", color: "#bf3989" }
+      { key: "blocked", label: "Blocked", color: "var(--mh-q-blocked)" },
+      { key: "review", label: "Review", color: "var(--mh-q-review)" },
+      { key: "drafts", label: "Drafts", color: "var(--mh-q-drafts)" },
+      { key: "checks", label: "Checks", color: "var(--mh-q-checks)" },
+      { key: "ready", label: "Ready", color: "var(--mh-q-ready)" },
+      { key: "other", label: "Other", color: "var(--mh-q-other)" }
     ];
 
     function metricSwitch(item, href, total, scope) {

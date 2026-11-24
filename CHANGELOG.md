@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Restyled the canvas with a flat, square-cornered look: one deep purple accent for tabs, focus, primary actions and selection, charcoal surfaces in dark mode, Segoe UI Variable type with Cascadia Mono captions, and lifecycle colors as theme variables. Text meets WCAG AA in both themes
 - Fixed the Checks queue counting pull requests with no CI as "checks running": GitHub search reports `status:pending` for a commit with no statuses, so the count now keeps only PRs whose check rollup is pending
 - Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The runtime is shared by the Copilot host and a Claude Code plugin in this repository
 - Added the Claude Code plugin (`.claude-plugin/`, `claude/`): MCP server, `/merge-harbor:open`, `/merge-harbor:assess`, `/merge-harbor:triage`; install with `/plugin marketplace add bradygaster/merge-harbor`
