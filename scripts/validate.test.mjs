@@ -51,7 +51,8 @@ try {
     marketplace.plugins[0].source = ".";
     writeFileSync(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`, "utf8");
 
-    const extensionPath = join(fixtureRoot, "extension", "extension.mjs");
+    // GitHub queries and HTTP routes live in the shared runtime the Copilot shell imports.
+    const extensionPath = join(fixtureRoot, "extension", "harbor-runtime.mjs");
     const extensionSource = readFileSync(extensionPath, "utf8");
     writeFileSync(
         extensionPath,

@@ -12,11 +12,27 @@ FORM: Ambient command display with direct-action drill-down.
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Merge Harbor — Ambient merge operations</title>
   <script>
+    // Theme order: ?scoutTheme, then the viewer's saved choice, then the system/host theme (followed live).
     (() => {
+      const valid = value => value === "dark" || value === "light";
       const param = new URLSearchParams(window.location.search).get("scoutTheme");
-      const theme =
-        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.setAttribute("data-theme", theme);
+      const query = window.matchMedia("(prefers-color-scheme: dark)");
+      let saved = "auto";
+      try { saved = localStorage.getItem("merge-harbor-theme") || "auto"; } catch {}
+      const apply = () => {
+        const choice = valid(param) ? param : saved;
+        document.documentElement.setAttribute("data-theme", valid(choice) ? choice : (query.matches ? "dark" : "light"));
+      };
+      window.mergeHarborTheme = {
+        get: () => (valid(saved) ? saved : "auto"),
+        set: value => {
+          saved = valid(value) ? value : "auto";
+          try { localStorage.setItem("merge-harbor-theme", saved); } catch {}
+          apply();
+        },
+      };
+      apply();
+      query.addEventListener("change", apply);
     })();
   </script>
   <style>
@@ -46,31 +62,32 @@ FORM: Ambient command display with direct-action drill-down.
       --cp-sheen: rgba(255, 255, 255, 0.55);
       --cp-highlight: rgba(177, 31, 75, 0.12);
     }
+    /* Dark fallbacks mirror GitHub's dark palette; a host's Primer variables still win. */
     html[data-theme="dark"] {
       color-scheme: dark;
-      --cp-bg: #3d3b3a;
-      --cp-bg-elevated: #343231;
-      --cp-surface: #292929;
-      --cp-surface-soft: #2e2e2e;
-      --cp-border: #474747;
-      --cp-border-strong: #5f5f5f;
-      --cp-text: #dedede;
-      --cp-text-muted: #919191;
-      --cp-text-soft: #b0b0b0;
-      --cp-accent: #fd8ea1;
-      --cp-accent-hover: #fb7b91;
-      --cp-accent-soft: rgba(253, 142, 161, 0.14);
-      --cp-accent-fg: #1a1a1a;
-      --cp-success: #4ade80;
-      --cp-danger: #f87171;
-      --cp-warning: #fbbf24;
-      --cp-link: #4da6ff;
-      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
-      --cp-overlay: rgba(41, 41, 41, 0.88);
-      --cp-panel: rgba(41, 41, 41, 0.72);
-      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-bg: var(--background-color-default, #0d1117);
+      --cp-bg-elevated: var(--background-color-default, #0d1117);
+      --cp-surface: var(--background-color-default, #0d1117);
+      --cp-surface-soft: var(--background-color-muted, #151b23);
+      --cp-border: var(--border-color-muted, #2f353d);
+      --cp-border-strong: var(--border-color-default, #3d444d);
+      --cp-text: var(--text-color-default, #f0f6fc);
+      --cp-text-muted: var(--text-color-muted, #9198a1);
+      --cp-text-soft: var(--text-color-muted, #9198a1);
+      --cp-accent: var(--background-color-accent-emphasis, #1f6feb);
+      --cp-accent-hover: var(--background-color-accent-emphasis, #388bfd);
+      --cp-accent-soft: var(--background-color-accent-muted, rgba(56, 139, 253, 0.15));
+      --cp-accent-fg: var(--text-color-on-emphasis, #ffffff);
+      --cp-success: var(--text-color-success, #3fb950);
+      --cp-danger: var(--text-color-danger, #f85149);
+      --cp-warning: var(--text-color-attention, #d29922);
+      --cp-link: var(--text-color-link, #4493f8);
+      --cp-shadow: 0 18px 48px rgba(1, 4, 9, 0.6);
+      --cp-overlay: rgba(13, 17, 23, 0.88);
+      --cp-panel: rgba(13, 17, 23, 0.72);
+      --cp-panel-strong: rgba(13, 17, 23, 0.96);
       --cp-sheen: rgba(255, 255, 255, 0.04);
-      --cp-highlight: rgba(253, 142, 161, 0.12);
+      --cp-highlight: rgba(56, 139, 253, 0.12);
     }
 
     * { box-sizing: border-box; }
@@ -656,8 +673,8 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .repo-action-button.primary:hover { background: var(--background-color-accent-emphasis, var(--cp-accent-hover)); }
     .repo-action-button[aria-pressed="true"] {
-      border-color: var(--border-color-success, var(--cp-success));
-      color: var(--text-color-success, var(--cp-success));
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-weight: 400;
     }
     .repo-action-button:disabled {
       border-color: var(--border-color-default, var(--cp-border));
@@ -783,8 +800,25 @@ FORM: Ambient command display with direct-action drill-down.
     .finding summary {
       min-height: 44px;
       padding: 12px 14px;
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr);
+      gap: 10px;
+      list-style: none;
       cursor: pointer;
     }
+    .finding summary::-webkit-details-marker { display: none; }
+    .finding summary::before {
+      width: 6px;
+      height: 6px;
+      margin-top: 6px;
+      border-right: 2px solid var(--text-color-muted, var(--cp-text-muted));
+      border-bottom: 2px solid var(--text-color-muted, var(--cp-text-muted));
+      content: "";
+      transform: rotate(-45deg);
+      transition: transform 140ms ease-out;
+    }
+    .finding[open] summary::before { transform: rotate(45deg); }
+    .finding[open] .finding-summary-copy > span { display: none; }
     .finding summary:focus-visible {
       outline: 3px solid var(--color-focus-outline, var(--cp-accent));
       outline-offset: 2px;
@@ -794,7 +828,6 @@ FORM: Ambient command display with direct-action drill-down.
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px 18px;
       align-items: start;
-      margin-left: 4px;
     }
     .finding-summary-copy {
       display: grid;
@@ -819,6 +852,25 @@ FORM: Ambient command display with direct-action drill-down.
       border-radius: var(--radius-full, 999px);
       font-size: var(--text-body-small, 12px);
       text-transform: capitalize;
+    }
+    .finding-badge.severity-critical,
+    .finding-badge.severity-high {
+      border-color: var(--border-color-danger-emphasis, var(--cp-danger));
+      color: var(--text-color-danger, var(--cp-danger));
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .finding-badge.severity-medium {
+      border-color: var(--border-color-attention-emphasis, var(--cp-warning));
+      color: var(--text-color-attention, var(--cp-warning));
+    }
+    .severity-pip {
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: var(--radius-full, 999px);
+      background: var(--background-color-danger-emphasis, var(--cp-danger));
+      color: var(--text-color-on-emphasis, #ffffff);
+      font-size: var(--text-body-small, 12px);
+      font-weight: var(--font-weight-semibold, 600);
     }
     .finding-counts {
       grid-column: 1 / -1;
@@ -1012,12 +1064,14 @@ FORM: Ambient command display with direct-action drill-down.
       color: var(--text-color-muted, var(--cp-text-muted));
       opacity: 0.72;
     }
-    .metric-switch.blocked { --metric-color: #cf222e; }
-    .metric-switch.review { --metric-color: #0969da; }
-    .metric-switch.drafts { --metric-color: #8250df; }
-    .metric-switch.checks { --metric-color: #bc4c00; }
-    .metric-switch.ready { --metric-color: #1a7f37; }
-    .metric-switch.other { --metric-color: #bf3989; }
+    .metric-switch.zero::before { background: var(--border-color-default, var(--cp-border-strong)); }
+    .metric-switch.zero strong { color: var(--text-color-muted, var(--cp-text-muted)); font-weight: 400; }
+    .metric-switch.blocked { --metric-color: var(--mh-q-blocked); }
+    .metric-switch.review { --metric-color: var(--mh-q-review); }
+    .metric-switch.drafts { --metric-color: var(--mh-q-drafts); }
+    .metric-switch.checks { --metric-color: var(--mh-q-checks); }
+    .metric-switch.ready { --metric-color: var(--mh-q-ready); }
+    .metric-switch.other { --metric-color: var(--mh-q-other); }
     .metric-unavailable {
       grid-area: track;
       min-height: 44px;
@@ -1165,6 +1219,7 @@ FORM: Ambient command display with direct-action drill-down.
       font-weight: var(--font-weight-bold, 700);
       color: var(--text-color-danger, var(--cp-danger));
     }
+    .ambient-status.calm .ambient-number { color: var(--text-color-success, var(--cp-success)); }
     .ambient-status strong { margin-top: 12px; font-size: var(--text-title-medium, 20px); }
     .ambient-status span { margin-top: 4px; color: var(--text-color-muted, var(--cp-text-muted)); }
     .fleet-treemap {
@@ -1232,8 +1287,8 @@ FORM: Ambient command display with direct-action drill-down.
     }
     .ambient-action {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
-      gap: 10px;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4px 10px;
       align-items: center;
       min-height: 54px;
       padding: 8px 10px;
@@ -1253,6 +1308,15 @@ FORM: Ambient command display with direct-action drill-down.
       font-weight: var(--font-weight-semibold, 600);
     }
     .ambient-action-copy { min-width: 0; }
+    .ambient-action-buttons {
+      grid-column: 2;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 14px;
+    }
+    .ambient-action-buttons .ambient-action-open { min-height: 32px; }
+    .ambient-action-buttons .ambient-assess { min-height: 32px; padding: 3px 10px; }
     .ambient-action-copy strong,
     .ambient-action-copy span {
       display: block;
@@ -1437,7 +1501,7 @@ FORM: Ambient command display with direct-action drill-down.
         grid-row: 4;
         width: 100%;
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         padding: 0 8px;
         overflow: visible;
       }
@@ -1519,6 +1583,676 @@ FORM: Ambient command display with direct-action drill-down.
         transition: none !important;
       }
     }
+
+    /* Decision board: agents propose, people decide, the ledger acts. */
+    .fleet-health.calm .health-number { color: var(--text-color-success, var(--cp-success)); }
+    .view-count {
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: var(--radius-full, 999px);
+      background: var(--background-color-accent-emphasis, var(--cp-accent));
+      color: var(--text-color-on-emphasis, var(--cp-accent-fg));
+      font-size: var(--text-body-small, 12px);
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .view-count[hidden] { display: none; }
+    .decisions {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+      min-height: calc(100vh - 198px);
+    }
+    .decision-rail {
+      border-right: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-muted, var(--cp-surface-soft));
+    }
+    .decision-rail h2, .decision-detail h2, .decision-detail h3 { margin: 0; }
+    .decision-rail-section { padding: 16px; border-bottom: 1px solid var(--border-color-default, var(--cp-border)); }
+    .decision-rail-section h2 {
+      margin-bottom: 10px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .board-list { display: grid; gap: 8px; }
+    .board-pick {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      text-align: left;
+      cursor: pointer;
+    }
+    .board-pick:hover { border-color: var(--border-color-default, var(--cp-border-strong)); }
+    .board-pick[aria-current="true"] {
+      border-color: var(--border-color-accent-emphasis, var(--cp-accent));
+      box-shadow: inset 3px 0 0 var(--border-color-accent-emphasis, var(--cp-accent));
+    }
+    .board-pick strong { overflow-wrap: anywhere; }
+    .board-pick-counts, .board-pick-flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .board-pick-counts b { color: var(--text-color-default, var(--cp-text)); }
+    .coverage-bar {
+      display: flex;
+      height: 8px;
+      overflow: hidden;
+      border-radius: var(--radius-full, 999px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      box-shadow: inset 0 0 0 1px var(--border-color-default, var(--cp-border));
+    }
+    .coverage-bar span { display: block; height: 100%; }
+    .coverage-bar .proposed { background: var(--background-color-accent-emphasis, var(--cp-accent)); }
+    .coverage-bar .no-action { background: var(--border-color-default, var(--cp-border-strong)); }
+    .coverage-bar .blocked {
+      background: repeating-linear-gradient(135deg, var(--text-color-attention, var(--cp-warning)) 0 3px, transparent 3px 6px);
+    }
+    .coverage-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      font-size: var(--text-body-small, 12px);
+    }
+    .coverage-legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+      border-radius: 2px;
+      vertical-align: -1px;
+    }
+    .flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      border: 1px solid currentColor;
+      border-radius: var(--radius-full, 999px);
+      font-size: var(--text-body-small, 12px);
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .flag.warn { color: var(--text-color-attention, var(--cp-warning)); }
+    .flag.stop { color: var(--text-color-danger, var(--cp-danger)); }
+    .shared-blocker {
+      padding: 10px 0;
+      border-top: 1px solid var(--border-color-default, var(--cp-border));
+      font-size: var(--text-body-small, 12px);
+    }
+    .shared-blocker:first-of-type { border-top: 0; padding-top: 0; }
+    .shared-blocker strong { display: block; font-size: var(--text-body-medium, 14px); }
+    .shared-blocker span { color: var(--text-color-muted, var(--cp-text-muted)); }
+    .decision-detail { min-width: 0; padding: 20px 28px 40px; }
+    .decision-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px 24px;
+    }
+    .decision-head h2 { font-size: var(--text-title-medium, 20px); }
+    .decision-head h2 a { color: inherit; text-decoration: none; }
+    .decision-head h2 a:hover { text-decoration: underline; }
+    .decision-head p { margin: 4px 0 0; color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+    .decision-coverage { display: grid; gap: 6px; min-width: min(100%, 320px); }
+    .decision-alert {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color-attention-emphasis, var(--cp-warning));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-attention-muted, transparent);
+    }
+    .decision-alert.stop { border-color: var(--border-color-danger-emphasis, var(--cp-danger)); }
+    .decision-alert p { margin: 0; }
+    .decision-alert p + p { margin-top: 4px; color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+    .decision-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 16px;
+      margin: 18px -28px 0;
+      padding: 10px 28px;
+      border-block: 1px solid var(--border-color-default, var(--cp-border));
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .decision-filters { display: flex; flex-wrap: wrap; gap: 4px; }
+    .decision-filters button {
+      min-height: 32px;
+      padding: 4px 10px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-medium, 6px);
+      background: transparent;
+      color: var(--text-color-muted, var(--cp-text-muted));
+      cursor: pointer;
+    }
+    .decision-filters button[aria-pressed="true"] {
+      border-color: var(--border-color-default, var(--cp-border));
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .decision-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .decision-actions > span { color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+    .decision-button {
+      min-height: 32px;
+      padding: 4px 12px;
+      border: 1px solid var(--border-color-control, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-button-default, var(--cp-surface));
+      color: var(--text-color-default, var(--cp-text));
+      font-weight: var(--font-weight-semibold, 600);
+      cursor: pointer;
+    }
+    .decision-button:hover { background: var(--background-color-button-default-hover, var(--cp-surface-soft)); }
+    .decision-button.primary {
+      border-color: var(--border-color-success-emphasis, var(--cp-success));
+      background: var(--background-color-success-emphasis, #1f883d);
+      color: var(--text-color-on-emphasis, #ffffff);
+    }
+    .decision-button.danger { color: var(--text-color-danger, var(--cp-danger)); }
+    .decision-button.write {
+      border-color: var(--border-color-accent-emphasis, var(--cp-accent));
+      background: var(--background-color-accent-emphasis, var(--cp-accent));
+      color: var(--text-color-on-emphasis, var(--cp-accent-fg));
+    }
+    .decision-button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .decision-confirm {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid var(--border-color-accent-muted, var(--cp-border-strong));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-accent-muted, var(--cp-accent-soft));
+    }
+    .decision-confirm.write { border-color: var(--border-color-attention-emphasis, var(--cp-warning)); background: var(--background-color-attention-muted, var(--cp-surface-soft)); }
+    .decision-confirm h3 { font-size: var(--text-body-medium, 14px); }
+    .decision-confirm ol { margin: 0; padding-left: 20px; }
+    .decision-confirm li { margin: 2px 0; }
+    .decision-confirm p { margin: 0; color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); }
+    .decision-confirm .decision-actions { margin-top: 4px; }
+    .decision-error { color: var(--text-color-danger, var(--cp-danger)); }
+    .proposal-group { margin-top: 22px; }
+    .proposal-group > h3 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 10px;
+      margin-bottom: 8px;
+      font-size: var(--text-body-medium, 14px);
+    }
+    .proposal-group > h3 span { color: var(--text-color-muted, var(--cp-text-muted)); font-size: var(--text-body-small, 12px); font-weight: 400; }
+    .proposal-list { display: grid; gap: 8px; }
+    .proposal {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-color-default, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-default, var(--cp-surface));
+    }
+    .proposal.selected { border-color: var(--border-color-accent-emphasis, var(--cp-accent)); }
+    .proposal input[type="checkbox"] { width: 16px; height: 16px; margin: 3px 0 0; }
+    .proposal-copy { min-width: 0; display: grid; gap: 4px; }
+    .proposal-action { font-weight: var(--font-weight-semibold, 600); overflow-wrap: anywhere; }
+    .proposal-action code {
+      padding: 0 5px;
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      font: 12px/1.6 var(--font-mono, Consolas, monospace);
+    }
+    .proposal-action a { color: var(--text-color-link, var(--cp-link)); }
+    .proposal-rationale { margin: 0; color: var(--text-color-muted, var(--cp-text-muted)); max-width: 80ch; }
+    .proposal-uncertainty { margin: 0; color: var(--text-color-attention, var(--cp-warning)); font-size: var(--text-body-small, 12px); }
+    .proposal-side { display: grid; justify-items: end; align-content: start; gap: 8px; }
+    .proposal-side .decision-actions { justify-content: flex-end; }
+    .proposal-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      font-size: var(--text-body-small, 12px);
+      font-weight: var(--font-weight-semibold, 600);
+    }
+    .proposal-state::before { width: 10px; height: 10px; content: ""; box-sizing: border-box; }
+    .proposal-state.undecided { color: var(--text-color-accent, var(--cp-link)); }
+    .proposal-state.undecided::before { border: 2px solid currentColor; border-radius: 50%; }
+    .proposal-state.approved { color: var(--text-color-success, var(--cp-success)); }
+    .proposal-state.approved::before { border: 2px solid currentColor; border-radius: 50%; background: currentColor; }
+    .proposal-state.executed { color: var(--text-color-success, var(--cp-success)); }
+    .proposal-state.executed::before { height: 6px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg) translate(1px, -1px); }
+    .proposal-state.rejected { color: var(--text-color-muted, var(--cp-text-muted)); }
+    .proposal-state.rejected::before { height: 2px; background: currentColor; }
+    .proposal-state.superseded, .proposal-state.unknown, .proposal-state.refused { color: var(--text-color-attention, var(--cp-warning)); }
+    .proposal-state.superseded::before, .proposal-state.unknown::before, .proposal-state.refused::before { border: 2px solid currentColor; transform: rotate(45deg) scale(0.85); }
+    .proposal-state.recommendation { color: var(--text-color-muted, var(--cp-text-muted)); }
+    .proposal-state.recommendation::before { border: 2px dashed currentColor; border-radius: 50%; }
+    .proposal-note { grid-column: 2 / -1; margin: 0; font-size: var(--text-body-small, 12px); }
+    .proposal-note.warn { color: var(--text-color-attention, var(--cp-warning)); }
+    .proposal details { grid-column: 2 / -1; font-size: var(--text-body-small, 12px); }
+    .proposal summary { width: max-content; color: var(--text-color-link, var(--cp-link)); cursor: pointer; }
+    .proposal details h4 { margin: 12px 0 4px; font-size: var(--text-body-small, 12px); }
+    .proposal details ul, .proposal details ol { margin: 0; padding-left: 18px; }
+    .proposal details pre {
+      margin: 4px 0 0;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid var(--border-color-muted, var(--cp-border));
+      border-radius: var(--radius-medium, 6px);
+      background: var(--background-color-muted, var(--cp-surface-soft));
+      white-space: pre-wrap;
+      font: 12px/1.5 var(--font-mono, Consolas, monospace);
+    }
+    .issue-outcomes { margin-top: 28px; display: grid; gap: 14px; }
+    .issue-outcomes h3 { font-size: var(--text-body-medium, 14px); }
+    .issue-outcomes ul { margin: 6px 0 0; padding-left: 18px; font-size: var(--text-body-small, 12px); }
+    .issue-outcomes a { color: var(--text-color-link, var(--cp-link)); }
+    .decisions-empty { max-width: 62ch; padding: 40px 28px; }
+    .decisions-empty h2 { margin: 0 0 8px; }
+    .decisions-empty p { margin: 0 0 8px; color: var(--text-color-muted, var(--cp-text-muted)); }
+    @media (max-width: 860px) {
+      .decisions { grid-template-columns: 1fr; }
+      .decision-rail { border-right: 0; border-bottom: 1px solid var(--border-color-default, var(--cp-border)); }
+      .decision-detail { padding: 16px; }
+      .decision-toolbar { margin: 16px -16px 0; padding: 10px 16px; }
+      .proposal { grid-template-columns: 20px minmax(0, 1fr); }
+      .proposal-side { grid-column: 2; justify-items: start; }
+      .proposal-side .decision-actions { justify-content: flex-start; }
+    }
+    /* == Identity layer ===================================================
+       Flat, quiet, square-cornered surfaces; Segoe UI Variable with light
+       display numerals; Cascadia for small captions; one deep purple for
+       every selected, focused, or primary thing. Tokens are set on
+       html[data-theme] so they hold even when a host injects Primer
+       variables on :root.
+       ===================================================================== */
+    html[data-theme="light"],
+    html[data-theme="dark"] {
+      --mh-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --mh-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --mh-mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+      --radius-small: 2px;
+      --radius-medium: 2px;
+      --radius-large: 2px;
+      --radius-full: 2px;
+      --font-sans: var(--mh-sans);
+      --font-mono: var(--mh-mono);
+      --shadow-inset: none;
+      --shadow-xsmall: none;
+    }
+    html[data-theme="light"] {
+      --mh-page: #f7f7f7;
+      --mh-accent: #5c2d91;
+      --mh-accent-hover: #4b2479;
+      --mh-accent-line: #5c2d91;
+      --mh-accent-ink: #5d438e;
+      --mh-accent-wash: #f1ebf8;
+      --mh-mast: linear-gradient(133deg, #f4fafd 47%, #f4e6f5 100%);
+      --mh-q-blocked: #c50f1f;
+      --mh-q-review: #0f6cbd;
+      --mh-q-drafts: #7752b8;
+      --mh-q-checks: #bc4b09;
+      --mh-q-ready: #107c10;
+      --mh-q-other: #03787c;
+
+      --cp-bg: #f7f7f7;
+      --cp-bg-elevated: #f7f7f7;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f2f2f2;
+      --cp-border: #e6e6e6;
+      --cp-border-strong: #8a8a94;
+      --cp-text: #191919;
+      --cp-text-muted: #616161;
+      --cp-text-soft: #616161;
+      --cp-accent: #5c2d91;
+      --cp-accent-hover: #4b2479;
+      --cp-accent-soft: #f1ebf8;
+      --cp-accent-fg: #ffffff;
+      --cp-success: #107c10;
+      --cp-danger: #c50f1f;
+      --cp-warning: #8a5300;
+      --cp-link: #5d438e;
+      --cp-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+
+      --background-color-default: #ffffff;
+      --background-color-muted: #f2f2f2;
+      --background-color-hover: #f0edf6;
+      --background-color-input: #ffffff;
+      --background-color-selected: #f1ebf8;
+      --background-color-disabled: #f2f2f2;
+      --background-color-button-default: #ffffff;
+      --background-color-button-default-hover: #f0edf6;
+      --background-color-emphasis: #262626;
+      --background-color-accent-emphasis: #5c2d91;
+      --background-color-accent-muted: #f1ebf8;
+      --background-color-success-emphasis: #107c10;
+      --background-color-danger-emphasis: #c50f1f;
+      --background-color-danger-muted: #fdf3f4;
+      --background-color-attention-muted: #fff9f0;
+      --border-color-default: #d6d6dc;
+      --border-color-muted: #e6e6e6;
+      --border-color-control: #8a8a94;
+      --border-color-accent: #5c2d91;
+      --border-color-accent-emphasis: #5c2d91;
+      --border-color-accent-muted: #d3c4ea;
+      --border-color-success-emphasis: #107c10;
+      --border-color-danger: #c50f1f;
+      --border-color-danger-emphasis: #c50f1f;
+      --border-color-attention-emphasis: #c98a1c;
+      --text-color-default: #191919;
+      --text-color-muted: #616161;
+      --text-color-disabled: #8a8a8a;
+      --text-color-link: #5d438e;
+      --text-color-accent: #5d438e;
+      --text-color-success: #107c10;
+      --text-color-danger: #c50f1f;
+      --text-color-attention: #8a5300;
+      --text-color-on-emphasis: #ffffff;
+      --color-focus-outline: #5c2d91;
+      --underlineNav-borderColor-active: #5c2d91;
+      --shadow-small: 0 8px 24px rgba(0, 0, 0, 0.14);
+    }
+    html[data-theme="dark"] {
+      --mh-page: #1f1f1f;
+      --mh-accent: #6f42c1;
+      --mh-accent-hover: #7d52cf;
+      --mh-accent-line: #9f7ee8;
+      --mh-accent-ink: #b9a2f0;
+      --mh-accent-wash: rgba(159, 126, 232, 0.14);
+      --mh-mast: linear-gradient(133deg, #252526 55%, #2c2536 100%);
+      --mh-q-blocked: #ff99a4;
+      --mh-q-review: #62abf5;
+      --mh-q-drafts: #b9a2f0;
+      --mh-q-checks: #f7894a;
+      --mh-q-ready: #6ccb5f;
+      --mh-q-other: #4bc0c4;
+
+      --cp-bg: #1f1f1f;
+      --cp-bg-elevated: #1f1f1f;
+      --cp-surface: #252526;
+      --cp-surface-soft: #2d2d30;
+      --cp-border: #333337;
+      --cp-border-strong: #777783;
+      --cp-text: #f1f1f1;
+      --cp-text-muted: #a8a8b0;
+      --cp-text-soft: #a8a8b0;
+      --cp-accent: #6f42c1;
+      --cp-accent-hover: #7d52cf;
+      --cp-accent-soft: rgba(159, 126, 232, 0.14);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #6ccb5f;
+      --cp-danger: #ff99a4;
+      --cp-warning: #f2c661;
+      --cp-link: #b9a2f0;
+      --cp-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+      --background-color-default: #252526;
+      --background-color-muted: #2d2d30;
+      --background-color-hover: #3e3e40;
+      --background-color-input: #1f1f1f;
+      --background-color-selected: rgba(159, 126, 232, 0.14);
+      --background-color-disabled: #2d2d30;
+      --background-color-button-default: #2d2d30;
+      --background-color-button-default-hover: #3e3e40;
+      --background-color-emphasis: #3e3e40;
+      --background-color-accent-emphasis: #6f42c1;
+      --background-color-accent-muted: rgba(159, 126, 232, 0.12);
+      --background-color-success-emphasis: #107c10;
+      --background-color-danger-emphasis: #c50f1f;
+      --background-color-danger-muted: rgba(255, 153, 164, 0.08);
+      --background-color-attention-muted: rgba(242, 198, 97, 0.07);
+      --border-color-default: #3f3f46;
+      --border-color-muted: #333337;
+      --border-color-control: #777783;
+      --border-color-accent: #9f7ee8;
+      --border-color-accent-emphasis: #9f7ee8;
+      --border-color-accent-muted: rgba(159, 126, 232, 0.4);
+      --border-color-success-emphasis: #3f9a3a;
+      --border-color-danger: #ff99a4;
+      --border-color-danger-emphasis: #e0606e;
+      --border-color-attention-emphasis: #b8902f;
+      --text-color-default: #f1f1f1;
+      --text-color-muted: #a8a8b0;
+      --text-color-disabled: #75757d;
+      --text-color-link: #b9a2f0;
+      --text-color-accent: #b9a2f0;
+      --text-color-success: #6ccb5f;
+      --text-color-danger: #ff99a4;
+      --text-color-attention: #f2c661;
+      --text-color-on-emphasis: #ffffff;
+      --color-focus-outline: #9f7ee8;
+      --underlineNav-borderColor-active: #9f7ee8;
+      --shadow-small: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Flat page, quiet type. */
+    body {
+      background: var(--mh-page);
+      font-family: var(--mh-sans);
+      letter-spacing: -0.005em;
+    }
+    .app { background: transparent; }
+    button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--color-focus-outline);
+      outline-offset: 2px;
+    }
+    ::selection { background: var(--mh-accent-wash); }
+
+    /* Masthead: a soft wash, a purple hairline on top. */
+    .topbar {
+      background: var(--mh-mast);
+      border-bottom: 1px solid var(--border-color-default);
+      box-shadow: inset 0 3px 0 var(--mh-accent);
+    }
+    .brand, .org-controls, .fleet-health { background: transparent; }
+    .brand { padding: 16px 24px 12px; }
+    h1 {
+      font-family: var(--mh-display);
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    .subline { margin-top: 3px; color: var(--text-color-muted); }
+    .org-controls .control { background: var(--background-color-input); }
+    .auto-refresh input,
+    .proposal input[type="checkbox"] { accent-color: var(--mh-accent); }
+    .fleet-health { padding: 10px 24px; }
+    .fleet-health:hover { background: var(--background-color-hover); }
+    .health-number {
+      font-family: var(--mh-display);
+      font-size: 40px;
+      font-weight: 350;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .health-copy strong { font-weight: 600; letter-spacing: -0.01em; }
+
+    /* Navigation: underline tabs, purple when selected. */
+    .view-switcher {
+      padding: 0 14px;
+      border-top: 1px solid var(--border-color-muted);
+      background: transparent;
+    }
+    .view-switcher button { color: var(--text-color-muted); }
+    .view-switcher button:hover { color: var(--text-color-default); background: var(--background-color-hover); }
+    .view-switcher button[aria-selected="true"] { color: var(--text-color-default); font-weight: 600; }
+    .view-switcher button[aria-selected="true"]::after,
+    .repo-scope-tab[aria-selected="true"]::after {
+      height: 2px;
+      border-radius: 0;
+      background: var(--mh-accent-line);
+    }
+    .view-count {
+      display: inline-block;
+      min-width: 18px;
+      background: var(--mh-accent);
+      color: #ffffff;
+      font-family: var(--mh-mono);
+      font-size: 11px;
+      line-height: 17px;
+      text-align: center;
+    }
+    .view-count[hidden] { display: none; }
+    .repo-scope-bar { background: var(--background-color-default); }
+    .repo-scope-tab { color: var(--text-color-muted); font-weight: 400; }
+    .repo-scope-tab[aria-selected="true"] { color: var(--text-color-default); font-weight: 600; }
+    .repo-scope-count { font-family: var(--mh-mono); font-size: 11px; }
+    .screen-head { background: transparent; }
+    .screen-head strong {
+      font-family: var(--mh-display);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .repo-search, .repo-collection, .load-more { background: transparent; }
+
+    /* Headings: Display cut, semibold, tight tracking. */
+    .ambient-panel h2,
+    .flow-stage-head h2,
+    .attention-head h2,
+    .decision-head h2,
+    .assessment-panel-head h2,
+    .decisions-empty h2,
+    .repo-empty h2 {
+      font-family: var(--mh-display);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .ambient-panel h2 { font-size: 18px; margin-bottom: 6px; }
+    .ambient-panel > p { line-height: 18px; }
+
+    /* Big numerals in the light Display weight. */
+    .ambient-number,
+    .distribution-total strong,
+    .flow-stage-head strong {
+      font-family: var(--mh-display);
+      font-weight: 350;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .ambient-status strong {
+      font-family: var(--mh-display);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    /* Small captions in Cascadia. */
+    .distribution-total span,
+    .repo-count span,
+    .finding-group-heading,
+    .decision-rail-section h2 {
+      font-family: var(--mh-mono);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .repo-count {
+      font-family: var(--mh-display);
+      font-size: 20px;
+      font-weight: 350;
+      letter-spacing: -0.02em;
+    }
+    .metric-switch strong { font-variant-numeric: tabular-nums; }
+    .metric-switch.zero::before {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px var(--border-color-control);
+    }
+    .metric-switch:hover { background: var(--background-color-hover); }
+
+    /* Selected and primary: one purple. */
+    .layout-toggle button[aria-pressed="true"] {
+      background: var(--mh-accent-wash);
+      color: var(--mh-accent-ink);
+      box-shadow: inset 0 -2px 0 var(--mh-accent-line);
+    }
+    .repo-action-button.primary,
+    .decision-button.write,
+    .issue-publication button.primary {
+      border-color: var(--mh-accent);
+      background: var(--mh-accent);
+      color: #ffffff;
+    }
+    .repo-action-button.primary:hover,
+    .decision-button.write:hover,
+    .issue-publication button.primary:hover { background: var(--mh-accent-hover); }
+    .board-pick[aria-current="true"] {
+      border-color: var(--border-color-accent-emphasis);
+      background: var(--mh-accent-wash);
+      box-shadow: inset 3px 0 0 var(--mh-accent-line);
+    }
+    .proposal.selected {
+      border-color: var(--border-color-accent-emphasis);
+      background: var(--mh-accent-wash);
+    }
+    .decision-filters button[aria-pressed="true"] {
+      border-color: transparent;
+      background: var(--mh-accent-wash);
+      color: var(--mh-accent-ink);
+    }
+    .coverage-bar { height: 6px; }
+    .coverage-bar .proposed { background: var(--mh-accent-line); }
+
+    /* Act now and Needs attention ranks: square chips. */
+    .ambient-action-rank,
+    .attention-rank {
+      border-width: 1px;
+      border-radius: var(--radius-small);
+      font-family: var(--mh-mono);
+      font-size: 12px;
+      font-weight: 400;
+    }
+    .ambient-action { border-color: var(--border-color-muted); }
+    .ambient-action:hover { border-color: var(--border-color-default); }
+
+    /* Repository and decision surfaces. */
+    .repo-entry-title a { letter-spacing: -0.015em; }
+    .board-pick strong,
+    .shared-blocker strong { font-weight: 600; letter-spacing: -0.01em; }
+    .decision-head h2 { font-size: 20px; }
+    .decision-toolbar { background: var(--mh-page); }
+    .decision-alert { border-left-width: 3px; }
+    .proposal-group > h3 {
+      font-family: var(--mh-display);
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .proposal { border-color: var(--border-color-muted); }
+    .flow-stage { border-top: 2px solid var(--mh-accent-line); }
+    .attention-head { background: var(--background-color-muted); }
+    .attention-age { font-family: var(--mh-mono); }
+
+    /* Tooltip and footer. */
+    .tooltip { border-radius: var(--radius-small); }
+    .spinner { border-top-color: var(--mh-accent-line); }
+    .footer {
+      font-family: var(--mh-mono);
+      font-size: 11.5px;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 760px) {
+      .brand { padding: 14px 16px 10px; }
+      .org-controls, .fleet-health { border-top-color: var(--border-color-muted); }
+      .health-number { font-size: 34px; }
+      .view-switcher { padding: 0 6px; }
+      .view-switcher button { font-size: 13px; }
+      .view-switcher button[aria-selected="true"]::after { right: 8px; left: 8px; }
+      .ambient-status { min-height: 0; padding: 4px 0; }
+    }
   </style>
 </head>
 <body>
@@ -1544,11 +2278,17 @@ FORM: Ambient command display with direct-action drill-down.
           <option value="120000">2 min</option>
           <option value="300000">5 min</option>
         </select>
+        <select id="theme-select" class="control" data-help="Follow the system theme, or keep Merge Harbor light or dark" aria-label="Color theme">
+          <option value="auto">Auto theme</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
       </div>
       <nav class="view-switcher" aria-label="Display view">
         <button type="button" aria-selected="true" data-view="overview" data-help="See fleet urgency, the full pull request distribution, and the busiest repositories">Overview</button>
         <button type="button" aria-selected="false" data-view="convoy" data-help="See live pull request counts by lifecycle condition and open filtered queues">PR flow</button>
         <button type="button" aria-selected="false" data-view="watchtower" data-help="Open the ranked pull requests where a human action can unblock flow">Needs attention</button>
+        <button type="button" aria-selected="false" data-view="decisions" data-help="Review what agents propose for each repository's issues; nothing changes on GitHub until you approve an exact revision">Decisions<span class="view-count" id="decisions-count" hidden></span></button>
       </nav>
       <a class="fleet-health" id="blocked-queue-link-top" href="https://github.com/pulls" target="_blank" rel="noreferrer" aria-label="Open blocked pull requests" data-help="Open the selected owner's blocked pull request queue on GitHub">
         <div class="health-number" id="health-number">—</div>
@@ -1581,7 +2321,7 @@ FORM: Ambient command display with direct-action drill-down.
           <div class="ambient-panel">
             <a class="ambient-status" id="blocked-queue-link" href="https://github.com/pulls" target="_blank" rel="noreferrer" data-help="Open the selected owner's blocked pull request queue on GitHub">
               <span class="ambient-number" id="ambient-blocked">—</span>
-              <strong>blocked pull requests</strong>
+              <strong id="ambient-blocked-label">blocked pull requests</strong>
               <span id="ambient-blocked-detail">Loading full-queue status…</span>
             </a>
           </div>
@@ -1640,6 +2380,13 @@ FORM: Ambient command display with direct-action drill-down.
             <div id="attention-list"></div>
           </div>
         </div>
+      </section>
+      <section id="decisions" class="screen" aria-label="Decisions">
+        <div class="screen-head">
+          <div><strong>Decision board</strong> · agents propose, you decide, and nothing changes on GitHub until you approve an exact revision</div>
+          <div id="decisions-summary">Loading decision boards…</div>
+        </div>
+        <div id="decision-board"></div>
       </section>
     </main>
 
@@ -1739,28 +2486,43 @@ FORM: Ambient command display with direct-action drill-down.
       return `assessment-${String(missionId).replace(/[^A-Za-z0-9_-]/g, "-")}`;
     }
 
-    function assessmentButton(owner, name, className = "repo-action-button primary", routeToOverview = false) {
+    // The agent host the page runs under (Copilot or Claude), injected by the runtime.
+    function hostName() {
+      return window.mergeHarborHost?.name || "Copilot";
+    }
+
+    // A queued mission is waiting on the agent when the host can't push prompts to it.
+    function missionWaiting(mission) {
+      return mission?.status === "queued" && String(mission.phase ?? "").startsWith("Waiting");
+    }
+
+    function assessmentButton(owner, name, className = "repo-action-button", routeToOverview = false) {
       const mission = latestMission(owner, name);
+      if (missionWaiting(mission)) {
+        return `<button type="button" class="${className}" disabled>Queued for ${escapeHtml(hostName())}</button>`;
+      }
       if (mission?.status === "queued" || mission?.status === "in_progress") {
-        return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Assessment in progress</button>`;
+        return `<button type="button" class="${className}" disabled><span class="mission-spinner" aria-hidden="true"></span> Assessing…</button>`;
       }
       if (mission?.status === "completed") {
         const key = repoKey(owner, name);
         const findings = Array.isArray(mission.findings) ? mission.findings : [];
+        const urgent = findings.filter(finding => finding.severity === "critical" || finding.severity === "high").length;
+        const pip = urgent ? ` <span class="severity-pip">${urgent} high</span>` : "";
         if (routeToOverview) {
-          return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}" data-review-route="overview">Review findings (${findings.length})</button>`;
+          return `<button type="button" class="${className}" data-review-mission="${escapeHtml(mission.id)}" data-review-route="overview">Review findings (${findings.length})${pip}</button>`;
         }
         const expanded = openAssessmentRepositoryKey === key;
-        return `<button type="button" class="${className} assessment-toggle" data-review-mission="${escapeHtml(mission.id)}" data-review-repository="${escapeHtml(key)}" aria-expanded="${expanded}" aria-controls="${missionPanelId(mission.id)}">${expanded ? "Hide findings" : `Review findings (${findings.length})`}</button>`;
+        return `<button type="button" class="${className} assessment-toggle" data-review-mission="${escapeHtml(mission.id)}" data-review-repository="${escapeHtml(key)}" aria-expanded="${expanded}" aria-controls="${missionPanelId(mission.id)}">${expanded ? "Hide findings" : `Review findings (${findings.length})${pip}`}</button>`;
       }
       const label = mission?.status === "failed" ? "Retry assessment" : "Assess repository";
-      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through GitHub Copilot. Remote writes are prohibited.">${label}</button>`;
+      return `<button type="button" class="${className}" data-assess-owner="${escapeHtml(owner)}" data-assess-name="${escapeHtml(name)}" data-help="Clone, mission state, and approved file changes stay local. Relevant repository content is processed through ${escapeHtml(hostName())}. Remote writes are prohibited.">${label}</button>`;
     }
 
     // Starting, running, and failed assessments report their state in the repository row.
     function assessmentStatusNote(mission) {
       const note = {
-        queued: ["Starting assessment…", mission?.message],
+        queued: [missionWaiting(mission) ? mission.phase : "Starting assessment…", mission?.message],
         in_progress: ["Assessment in progress", mission?.phase || mission?.message],
         failed: ["Assessment failed", mission?.message],
       }[mission?.status];
@@ -1831,7 +2593,7 @@ FORM: Ambient command display with direct-action drill-down.
               <span>${escapeHtml(finding.rootCause)}</span>
             </span>
             <span class="finding-badges">
-              <span class="finding-badge">${escapeHtml(finding.severity)} severity</span>
+              <span class="finding-badge severity-${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)} severity</span>
               <span class="finding-badge">${escapeHtml(finding.confidence)} confidence</span>
             </span>
             <span class="finding-counts">${evidenceCount} evidence item${evidenceCount === 1 ? "" : "s"} · ${dependencyCount} dependenc${dependencyCount === 1 ? "y" : "ies"}</span>
@@ -2123,12 +2885,12 @@ FORM: Ambient command display with direct-action drill-down.
     }
 
     const metricDefinitions = [
-      { key: "blocked", label: "Blocked", color: "#cf222e" },
-      { key: "review", label: "Review", color: "#0969da" },
-      { key: "drafts", label: "Drafts", color: "#8250df" },
-      { key: "checks", label: "Checks", color: "#bc4c00" },
-      { key: "ready", label: "Ready", color: "#1a7f37" },
-      { key: "other", label: "Other", color: "#bf3989" }
+      { key: "blocked", label: "Blocked", color: "var(--mh-q-blocked)" },
+      { key: "review", label: "Review", color: "var(--mh-q-review)" },
+      { key: "drafts", label: "Drafts", color: "var(--mh-q-drafts)" },
+      { key: "checks", label: "Checks", color: "var(--mh-q-checks)" },
+      { key: "ready", label: "Ready", color: "var(--mh-q-ready)" },
+      { key: "other", label: "Other", color: "var(--mh-q-other)" }
     ];
 
     function metricSwitch(item, href, total, scope) {
@@ -2226,6 +2988,10 @@ FORM: Ambient command display with direct-action drill-down.
       document.getElementById("health-title").textContent = "blocked PRs";
       document.getElementById("health-detail").textContent = hasRepositoryData ? `In ${blockedRepos} of ${repos.length} repositories` : "Loading…";
       document.getElementById("ambient-blocked").textContent = hasRepositoryData ? totals.blocked.toLocaleString() : "—";
+      const calm = hasRepositoryData && totals.blocked === 0;
+      document.getElementById("blocked-queue-link").classList.toggle("calm", calm);
+      document.getElementById("blocked-queue-link-top").classList.toggle("calm", calm);
+      document.getElementById("ambient-blocked-label").textContent = calm ? "Nothing blocked" : "blocked pull requests";
       document.getElementById("ambient-blocked-detail").textContent = !hasRepositoryData ? "Loading full-queue status…" : `In ${blockedRepos} of ${repos.length} ${activeRepoScope === "personal" ? "personal" : "displayed"} repositories`;
       const blockedQueueUrl = activeQueueUrl("blocked");
       document.getElementById("blocked-queue-link").href = blockedQueueUrl;
@@ -2247,9 +3013,11 @@ FORM: Ambient command display with direct-action drill-down.
       document.getElementById("ambient-actions").innerHTML = watch.length ? watch.slice(0, 3).map((item, index) => `
         <article class="ambient-action" data-help="Priority ${index + 1}: ${escapeHtml(item.action)}">
           <span class="ambient-action-rank">${index + 1}</span>
-          <span class="ambient-action-copy"><strong>${escapeHtml(item.repo)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}</span></span>
-          ${item.url ? `<a class="ambient-action-open" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="ambient-action-open">Details</span>`}
-          ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess", true) : ""}
+          <span class="ambient-action-copy"><strong>${escapeHtml(item.name)} · ${escapeHtml(item.issue)}</strong><span>${escapeHtml(item.action)} · ${escapeHtml(item.age)}${activeRepoScope === "personal" ? ` · ${escapeHtml(item.owner)}` : ""}</span></span>
+          <span class="ambient-action-buttons">
+            ${item.url ? `<a class="ambient-action-open" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open PR</a>` : ""}
+            ${item.name ? assessmentButton(item.owner, item.name, "ambient-assess", true) : ""}
+          </span>
         </article>`).join("") : `<p class="watch-empty">No pull requests need intervention in the displayed repositories.</p>`;
 
       const flowStages = [
@@ -2278,7 +3046,7 @@ FORM: Ambient command display with direct-action drill-down.
         <article class="attention-row" data-help="Ranked intervention ${index + 1} for ${escapeHtml(item.repo)}">
           <div class="attention-rank">${index + 1}</div>
           <div class="attention-repo"><strong>${escapeHtml(item.repo)}</strong><span>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.issue)}</a>` : escapeHtml(item.issue)}</span></div>
-          <div class="attention-action"><strong>${escapeHtml(item.action)}</strong><span>Recommended intervention</span></div>
+          <div class="attention-action"><strong>${escapeHtml(item.action)}</strong></div>
           <div class="attention-age" data-help="Last updated ${escapeHtml(item.shortAge)}">${escapeHtml(item.shortAge)}</div>
           ${item.url ? `<a class="attention-open" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open PR</a>` : `<span class="attention-open">Details</span>`}
           ${item.name ? assessmentButton(item.owner, item.name, "attention-assess", true) : ""}
@@ -2290,7 +3058,6 @@ FORM: Ambient command display with direct-action drill-down.
     function setLoading(loading, blank = false, owner = "") {
       document.getElementById("loading-banner").classList.toggle("visible", loading);
       document.getElementById("refresh-button").disabled = loading;
-      document.getElementById("org-select").disabled = loading;
       document.querySelector(".app").classList.toggle("org-loading", loading && blank);
       document.getElementById("loading-stage-title").textContent = owner
         ? `Loading ${owner}`
@@ -2327,7 +3094,7 @@ FORM: Ambient command display with direct-action drill-down.
         button.setAttribute("aria-selected", String(button.dataset.repoScope === activeRepoScope));
       });
       document.getElementById("personal-repo-count").textContent = personalRepoKeys.size.toLocaleString();
-      document.getElementById("organization-repo-count").textContent = organizationRepos.length.toLocaleString();
+      document.getElementById("organization-repo-count").textContent = organizationRepos.length || organizationCatalogTotal ? organizationRepos.length.toLocaleString() : "—";
       document.getElementById("owner-repo-label").textContent = `${currentOwner} repos`;
       document.getElementById("repo-scope-caption").textContent = activeRepoScope === "personal"
         ? `${personalRepoKeys.size} saved repos across GitHub owners`
@@ -2535,7 +3302,7 @@ FORM: Ambient command display with direct-action drill-down.
         const select = document.getElementById("org-select");
         select.innerHTML = data.organizations.map(owner => `<option value="${escapeHtml(owner.login)}">${escapeHtml(owner.login)}${owner.kind === "user" ? " (personal)" : ""}</option>`).join("");
         const preferred = data.organizations.find(org => org.login === data.selectedOwner)
-          ?? data.organizations.find(org => org.login === "github")
+          ?? data.organizations.find(org => org.kind === "user")
           ?? data.organizations[0];
         if (!preferred) throw new Error("The signed-in GitHub account does not expose any repository owners.");
         select.value = preferred.login;
@@ -2687,6 +3454,10 @@ FORM: Ambient command display with direct-action drill-down.
     document.getElementById("auto-refresh").addEventListener("change", saveRefreshPreferences);
     document.getElementById("refresh-interval").addEventListener("change", saveRefreshPreferences);
 
+    const themeSelect = document.getElementById("theme-select");
+    themeSelect.value = window.mergeHarborTheme.get();
+    themeSelect.addEventListener("change", () => window.mergeHarborTheme.set(themeSelect.value));
+
     const tooltip = document.getElementById("tooltip");
     let tooltipTarget;
     function showTooltip(target) {
@@ -2724,6 +3495,485 @@ FORM: Ambient command display with direct-action drill-down.
     document.getElementById("refresh-interval").disabled = !document.getElementById("auto-refresh").checked;
     renderDashboard();
     loadOrganizations();
+  </script>
+
+  <script>
+    // Decision board view. Mirrors the ledger's rules for display only; every decision
+    // and execution is enforced again by the extension at the boundary.
+    const decisionBoards = new Map();
+    let organizationDecisions;
+    let selectedBoardId;
+    let decisionFilter = "all";
+    const selectedProposals = new Set();
+    const openProposalDetails = new Set();
+    const executionResults = new Map();
+    let pendingBatch;
+    let pendingExecution;
+    let decisionError = "";
+    let decisionBusy = false;
+
+    const proposalFilters = [
+      ["all", "All"],
+      ["awaiting", "Awaiting you"],
+      ["approved", "Approved"],
+      ["executed", "Executed"],
+      ["rejected", "Rejected"],
+    ];
+
+    function currentProposalRevision(board, id) {
+      const revisions = board.proposals[id]?.revisions;
+      return revisions?.[revisions.length - 1];
+    }
+    function latestProposalDecision(board, id) {
+      for (let index = board.decisions.length - 1; index >= 0; index -= 1) {
+        if (board.decisions[index].proposalId === id) return board.decisions[index];
+      }
+      return undefined;
+    }
+    function proposalDecisionState(board, id) {
+      const decision = latestProposalDecision(board, id);
+      if (!decision) return "undecided";
+      return decision.digest === currentProposalRevision(board, id)?.digest ? decision.verdict : "superseded";
+    }
+    function proposalExecution(board, id) {
+      const revision = currentProposalRevision(board, id);
+      return revision ? board.executions[`${id}@${revision.revision}:${revision.digest}`] : undefined;
+    }
+    function proposalStatus(board, id) {
+      const revision = currentProposalRevision(board, id);
+      const execution = proposalExecution(board, id);
+      if (execution?.status === "succeeded") return { key: "executed", label: "Executed" };
+      if (execution?.status === "unknown" || execution?.status === "dispatching") return { key: "unknown", label: "Outcome unknown · reconciles on next run" };
+      const result = executionResults.get(board.id)?.get(id);
+      const decision = proposalDecisionState(board, id);
+      if (decision === "approved" && result?.status === "refused") return { key: "refused", label: "Approved · refused at execution" };
+      if (decision === "approved") return revision.action.executable
+        ? { key: "approved", label: "Approved · ready to execute" }
+        : { key: "approved", label: "Approved recommendation" };
+      if (decision === "rejected") return { key: "rejected", label: "Rejected" };
+      if (decision === "superseded") return { key: "superseded", label: `Changed to r${revision.revision} · re-review` };
+      return revision.action.executable
+        ? { key: "undecided", label: "Awaiting decision" }
+        : { key: "undecided", label: "Recommendation · awaiting decision" };
+    }
+    function needsDecision(board, id) {
+      return ["undecided", "superseded"].includes(proposalDecisionState(board, id));
+    }
+    function readyToExecute(board, id) {
+      const revision = currentProposalRevision(board, id);
+      const execution = proposalExecution(board, id);
+      return revision.action.executable && proposalDecisionState(board, id) === "approved" && execution?.status !== "succeeded";
+    }
+    function matchesFilter(board, id) {
+      const status = proposalStatus(board, id).key;
+      if (decisionFilter === "awaiting") return status === "undecided" || status === "superseded";
+      if (decisionFilter === "approved") return status === "approved" || status === "refused" || status === "unknown";
+      if (decisionFilter === "executed") return status === "executed";
+      if (decisionFilter === "rejected") return status === "rejected";
+      return true;
+    }
+
+    function boardCoverage(board) {
+      const numbers = Object.keys(board.inventory?.issues ?? {});
+      const tally = { proposal: 0, no_action: 0, blocked: 0 };
+      const uncovered = [];
+      for (const number of numbers) {
+        const outcome = board.outcomes[number];
+        if (outcome) tally[outcome.kind] += 1;
+        else uncovered.push(Number(number));
+      }
+      return { total: numbers.length, ...tally, uncovered: uncovered.sort((a, b) => a - b), gaps: board.inventory?.gaps ?? [] };
+    }
+
+    function issueLink(board, number) {
+      const url = `https://github.com/${board.repository.owner}/${board.repository.name}/issues/${number}`;
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">#${number}</a>`;
+    }
+    function issueList(board, issues) {
+      return issues.map(issue => issueLink(board, issue.number ?? issue)).join(", ");
+    }
+    function codeList(values) {
+      return values.map(value => `<code>${escapeHtml(value)}</code>`).join(" ");
+    }
+    function describeAction(board, revision) {
+      const { type, payload } = revision.action;
+      const targets = issueList(board, revision.issues);
+      if (type === "add_labels") return `Add label${payload.labels.length === 1 ? "" : "s"} ${codeList(payload.labels)} to ${targets}`;
+      if (type === "remove_labels") return `Remove label${payload.labels.length === 1 ? "" : "s"} ${codeList(payload.labels)} from ${targets}`;
+      if (type === "assign") return `Assign ${codeList(payload.assignees.map(login => "@" + login))} to ${targets}`;
+      if (type === "comment") return `Comment on ${targets}`;
+      if (type === "close") {
+        const reason = payload.reason === "duplicate"
+          ? `as a duplicate of ${issueLink(board, payload.duplicateOf)}`
+          : payload.reason === "not_planned" ? "as not planned" : "as completed";
+        return `Close ${targets} ${reason}`;
+      }
+      const verb = { investigate: "Investigate", implement: "Implement", no_change: "No change", other: "Recommendation" }[type] ?? type;
+      return `${verb} · ${targets}`;
+    }
+    function describeActionText(board, revision) {
+      const holder = document.createElement("span");
+      holder.innerHTML = describeAction(board, revision);
+      return holder.textContent;
+    }
+
+    function renderCoverage(coverage) {
+      const width = value => coverage.total ? `${(value / coverage.total * 100).toFixed(2)}%` : "0";
+      return `<div class="coverage-bar" role="img" aria-label="${coverage.proposal} proposed, ${coverage.no_action} no action, ${coverage.blocked} blocked, ${coverage.uncovered.length} not yet triaged of ${coverage.total} issues">
+          <span class="proposed" style="width:${width(coverage.proposal)}"></span>
+          <span class="no-action" style="width:${width(coverage.no_action)}"></span>
+          <span class="blocked" style="width:${width(coverage.blocked)}"></span>
+        </div>`;
+    }
+
+    function boardCounts(board) {
+      const ids = Object.keys(board.proposals);
+      return {
+        awaiting: ids.filter(id => needsDecision(board, id)).length,
+        ready: board.cancelled ? 0 : ids.filter(id => readyToExecute(board, id)).length,
+        executed: ids.filter(id => proposalExecution(board, id)?.status === "succeeded").length,
+        total: ids.length,
+      };
+    }
+
+    function renderBoardPick(board) {
+      const coverage = boardCoverage(board);
+      const counts = boardCounts(board);
+      const incomplete = coverage.uncovered.length || coverage.gaps.length;
+      return `<button type="button" class="board-pick" data-board-id="${escapeHtml(board.id)}" aria-current="${board.id === selectedBoardId}">
+          <strong>${escapeHtml(board.repository.owner)}/${escapeHtml(board.repository.name)}</strong>
+          ${renderCoverage(coverage)}
+          <span class="board-pick-counts"><span><b>${counts.awaiting}</b> awaiting</span><span><b>${counts.ready}</b> ready</span><span><b>${counts.executed}</b> executed</span><span>${coverage.total} issues</span></span>
+          ${incomplete || board.cancelled ? `<span class="board-pick-flags">${incomplete ? `<span class="flag warn">◆ Incomplete coverage</span>` : ""}${board.cancelled ? `<span class="flag stop">■ Execution stopped</span>` : ""}</span>` : ""}
+        </button>`;
+    }
+
+    function renderSharedBlockers() {
+      const blockers = (organizationDecisions?.sharedBlockers ?? []).filter(blocker => blocker.repositories.length > 1);
+      if (!blockers.length) return "";
+      return `<div class="decision-rail-section"><h2>Shared across repositories</h2>${blockers.map(blocker => `<div class="shared-blocker">
+          <strong>${escapeHtml(blocker.group)}</strong>
+          <span>${blocker.members.length} proposals across ${blocker.repositories.map(escapeHtml).join(", ")}. Each repository keeps its own approval.</span>
+        </div>`).join("")}</div>`;
+    }
+
+    function renderProposal(board, id) {
+      const revision = currentProposalRevision(board, id);
+      const status = proposalStatus(board, id);
+      const selectable = needsDecision(board, id);
+      const selected = selectedProposals.has(id);
+      const result = executionResults.get(board.id)?.get(id);
+      const execution = proposalExecution(board, id);
+      const decision = latestProposalDecision(board, id);
+      const history = board.proposals[id].revisions;
+      const deps = revision.dependsOn.map(dep => {
+        const depRevision = currentProposalRevision(board, dep);
+        return depRevision ? `<li>${describeAction(board, depRevision)} · ${escapeHtml(proposalStatus(board, dep).label)}</li>` : `<li>${escapeHtml(dep)}</li>`;
+      }).join("");
+      const notes = [];
+      if (result?.status === "refused") notes.push(`<p class="proposal-note warn">Refused at execution: ${escapeHtml(result.reason || result.code)}</p>`);
+      if (execution?.status === "unknown") notes.push(`<p class="proposal-note warn">GitHub did not confirm this write. The next run checks GitHub before retrying, so it will not be written twice.</p>`);
+      if (status.key === "superseded" && decision) notes.push(`<p class="proposal-note warn">${escapeHtml(decision.reviewer)} ${escapeHtml(decision.verdict)} r${decision.revision}; that decision does not carry over to r${revision.revision}.</p>`);
+      if (status.key === "executed" && execution) notes.push(`<p class="proposal-note">Applied after approval by ${escapeHtml(execution.approvedBy)}${execution.reconciled ? " · confirmed by reconciling with GitHub" : ""}.</p>`);
+      return `<article class="proposal${selected ? " selected" : ""}" data-proposal-id="${escapeHtml(id)}">
+          ${selectable ? `<input type="checkbox" data-select-proposal="${escapeHtml(id)}" aria-label="Select: ${escapeHtml(describeActionText(board, revision))}"${selected ? " checked" : ""}>` : "<span></span>"}
+          <div class="proposal-copy">
+            <span class="proposal-action">${describeAction(board, revision)}</span>
+            <p class="proposal-rationale">${escapeHtml(revision.rationale)}</p>
+            ${revision.uncertainty ? `<p class="proposal-uncertainty">Uncertain: ${escapeHtml(revision.uncertainty)}</p>` : ""}
+          </div>
+          <div class="proposal-side">
+            <span class="proposal-state ${status.key}">${escapeHtml(status.label)}</span>
+            ${selectable ? `<span class="decision-actions">
+                <button type="button" class="decision-button" data-decide="approved" data-proposal="${escapeHtml(id)}"${decisionBusy ? " disabled" : ""}>Approve r${revision.revision}</button>
+                <button type="button" class="decision-button danger" data-decide="rejected" data-proposal="${escapeHtml(id)}"${decisionBusy ? " disabled" : ""}>Reject</button>
+              </span>` : ""}
+          </div>
+          ${notes.join("")}
+          <details data-proposal-details="${escapeHtml(id)}"${openProposalDetails.has(id) ? " open" : ""}>
+            <summary>Evidence, exact change, and history</summary>
+            <h4>Evidence</h4>
+            <ul>${revision.evidence.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+            ${revision.action.type === "comment" ? `<h4>Comment body</h4><pre>${escapeHtml(revision.action.payload.body)}</pre>` : ""}
+            ${revision.action.payload.summary ? `<h4>Recommendation</h4><p>${escapeHtml(revision.action.payload.summary)}</p>` : ""}
+            ${deps ? `<h4>Runs after</h4><ul>${deps}</ul>` : ""}
+            <h4>Revisions</h4>
+            <ol>${history.map(item => `<li>r${item.revision} by ${escapeHtml(item.author)} · ${new Date(item.createdAt).toLocaleString()} · <code>${escapeHtml(item.digest.slice(0, 8))}</code></li>`).join("")}</ol>
+          </details>
+        </article>`;
+    }
+
+    function renderToolbar(board, visibleIds) {
+      const selectedVisible = [...selectedProposals].filter(id => visibleIds.includes(id));
+      const ready = Object.keys(board.proposals).filter(id => readyToExecute(board, id));
+      return `<div class="decision-toolbar">
+          <div class="decision-filters" role="group" aria-label="Filter proposals">${proposalFilters.map(([key, label]) => `<button type="button" data-decision-filter="${key}" aria-pressed="${decisionFilter === key}">${label}</button>`).join("")}</div>
+          <div class="decision-actions">
+            <span aria-live="polite">${selectedVisible.length ? `${selectedVisible.length} selected` : "Select proposals to decide in a batch"}</span>
+            <button type="button" class="decision-button primary" data-batch="approved"${!selectedVisible.length || decisionBusy ? " disabled" : ""}>Approve selected</button>
+            <button type="button" class="decision-button danger" data-batch="rejected"${!selectedVisible.length || decisionBusy ? " disabled" : ""}>Reject selected</button>
+            <button type="button" class="decision-button write" data-execute-board${!ready.length || board.cancelled || decisionBusy ? " disabled" : ""}>Execute ${ready.length} approved</button>
+            ${board.cancelled ? "" : `<button type="button" class="decision-button danger" data-cancel-board${decisionBusy ? " disabled" : ""}>Stop execution</button>`}
+          </div>
+        </div>
+        ${renderPendingBatch(board)}${renderPendingExecution(board)}
+        ${decisionError ? `<p class="decision-error" role="alert">${escapeHtml(decisionError)}</p>` : ""}`;
+    }
+
+    function renderPendingBatch(board) {
+      if (!pendingBatch || pendingBatch.boardId !== board.id) return "";
+      const { manifest } = pendingBatch;
+      const verb = manifest.verdict === "approved" ? "Approve" : "Reject";
+      return `<div class="decision-confirm" role="group" aria-label="Confirm batch">
+          <h3>${verb} exactly these ${manifest.members.length} proposal${manifest.members.length === 1 ? "" : "s"}?</h3>
+          <ol>${manifest.members.map(member => {
+            const revision = currentProposalRevision(board, member.proposalId);
+            return `<li>${describeAction(board, revision)} · r${member.revision}</li>`;
+          }).join("")}</ol>
+          <p>Affects ${manifest.issues.length} issue${manifest.issues.length === 1 ? "" : "s"} in ${escapeHtml(manifest.repository)}. This set is frozen: if any proposal changes before you confirm, nothing is decided. Approval does not execute anything.</p>
+          ${manifest.conflicts.length ? `<p class="decision-error">Blocked: ${manifest.conflicts.map(conflict => `a selected proposal runs after one that is ${escapeHtml(conflict.state)}`).join("; ")}. Add its dependency to the batch or decide it first.</p>` : ""}
+          <div class="decision-actions">
+            <button type="button" class="decision-button ${manifest.verdict === "approved" ? "primary" : "danger"}" data-confirm-batch${manifest.conflicts.length || decisionBusy ? " disabled" : ""}>${verb} ${manifest.members.length}</button>
+            <button type="button" class="decision-button" data-dismiss-pending>Cancel</button>
+          </div>
+        </div>`;
+    }
+
+    function renderPendingExecution(board) {
+      if (!pendingExecution || pendingExecution.boardId !== board.id) return "";
+      return `<div class="decision-confirm write" role="group" aria-label="Confirm execution">
+          <h3>Write these ${pendingExecution.ids.length} change${pendingExecution.ids.length === 1 ? "" : "s"} to GitHub as your signed-in account?</h3>
+          <ol>${pendingExecution.ids.map(id => `<li>${describeAction(board, currentProposalRevision(board, id))}</li>`).join("")}</ol>
+          <p>Each change is re-checked first: approval, revision, account, repository, dependencies, and whether the issue changed since triage. Anything stale is refused, not written. Applied changes are not automatically reversed.</p>
+          <div class="decision-actions">
+            <button type="button" class="decision-button write" data-confirm-execution${decisionBusy ? " disabled" : ""}>${decisionBusy ? "Writing to GitHub…" : "Write to GitHub"}</button>
+            <button type="button" class="decision-button" data-dismiss-pending${decisionBusy ? " disabled" : ""}>Cancel</button>
+          </div>
+        </div>`;
+    }
+
+    function renderBoardDetail(board) {
+      const coverage = boardCoverage(board);
+      const ids = Object.keys(board.proposals);
+      const visible = ids.filter(id => matchesFilter(board, id));
+      const groups = new Map();
+      for (const id of visible) {
+        const group = board.proposals[id].group || "";
+        if (!groups.has(group)) groups.set(group, []);
+        groups.get(group).push(id);
+      }
+      const ordered = [...groups.entries()].sort(([a], [b]) => (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b));
+      const blocked = Object.entries(board.outcomes).filter(([, outcome]) => outcome.kind === "blocked");
+      const alerts = [];
+      if (board.cancelled) alerts.push(`<div class="decision-alert stop"><p><strong>Execution is stopped for this board.</strong></p><p>${escapeHtml(board.cancelled.by)} stopped it ${new Date(board.cancelled.at).toLocaleString()}. Decisions are kept; nothing further will be written.</p></div>`);
+      if (coverage.gaps.length || coverage.uncovered.length) alerts.push(`<div class="decision-alert"><p><strong>This board is not fully assessed.</strong></p>${coverage.gaps.map(gap => `<p>${escapeHtml(gap)}</p>`).join("")}${coverage.uncovered.length ? `<p>${coverage.uncovered.length} issue${coverage.uncovered.length === 1 ? " has" : "s have"} no triage outcome yet: ${coverage.uncovered.slice(0, 20).map(number => issueLink(board, number)).join(", ")}${coverage.uncovered.length > 20 ? ", …" : ""}</p>` : ""}</div>`);
+      return `<div class="decision-detail">
+          <div class="decision-head">
+            <div>
+              <h2><a href="https://github.com/${escapeHtml(board.repository.owner)}/${escapeHtml(board.repository.name)}/issues" target="_blank" rel="noreferrer">${escapeHtml(board.repository.owner)}/${escapeHtml(board.repository.name)}</a></h2>
+              <p>${coverage.total} open issues snapshotted ${board.inventory ? new Date(board.inventory.snapshotAt).toLocaleString() : "—"} · assessed as ${escapeHtml(board.viewer || "unknown account")}</p>
+            </div>
+            <div class="decision-coverage">
+              ${renderCoverage(coverage)}
+              <div class="coverage-legend">
+                <span><i style="background:var(--background-color-accent-emphasis, var(--cp-accent))"></i>${coverage.proposal} proposed</span>
+                <span><i style="background:var(--border-color-default, var(--cp-border-strong))"></i>${coverage.no_action} no action</span>
+                <span><i style="background:repeating-linear-gradient(135deg, var(--text-color-attention, var(--cp-warning)) 0 3px, transparent 3px 6px)"></i>${coverage.blocked} blocked</span>
+                ${coverage.uncovered.length ? `<span>${coverage.uncovered.length} not triaged</span>` : ""}
+              </div>
+            </div>
+          </div>
+          ${alerts.join("")}
+          ${renderToolbar(board, visible)}
+          ${ordered.length ? ordered.map(([group, groupIds]) => `<section class="proposal-group" aria-label="${escapeHtml(group || "Individual proposals")}">
+              <h3>${escapeHtml(group || "Individual proposals")}<span>${groupIds.length} proposal${groupIds.length === 1 ? "" : "s"}${group ? " · shared root cause" : ""}</span></h3>
+              <div class="proposal-list">${groupIds.map(id => renderProposal(board, id)).join("")}</div>
+            </section>`).join("") : `<p class="watch-empty">No proposals match this filter.</p>`}
+          ${blocked.length ? `<div class="issue-outcomes"><div><h3>Blocked during triage</h3><ul>${blocked.map(([number, outcome]) => `<li>${issueLink(board, number)} · ${escapeHtml(outcome.reason)}</li>`).join("")}</ul></div></div>` : ""}
+        </div>`;
+    }
+
+    function renderDecisions() {
+      const container = document.getElementById("decision-board");
+      const boards = [...decisionBoards.values()].sort((a, b) => a.repository.key.localeCompare(b.repository.key));
+      const awaiting = boards.reduce((sum, board) => sum + boardCounts(board).awaiting, 0);
+      const badge = document.getElementById("decisions-count");
+      badge.hidden = !awaiting;
+      badge.textContent = awaiting;
+      document.getElementById("decisions-summary").textContent = boards.length
+        ? `${boards.length} repositor${boards.length === 1 ? "y" : "ies"} · ${awaiting} proposal${awaiting === 1 ? "" : "s"} awaiting your decision`
+        : "No boards yet";
+      if (!boards.length) {
+        container.innerHTML = `<div class="decisions-empty">
+            <h2>No decision boards yet</h2>
+            <p>${escapeHtml(window.mergeHarborHost?.triageHint || `Ask ${hostName()} to triage a repository's issues.`)} Merge Harbor fetches the complete issue inventory itself, the repository's Squad proposes exact actions with evidence, and they appear here for you to approve or reject.</p>
+            <p>Triage never changes GitHub. Only approved, still-current actions can be written, and only when you choose to execute them.</p>
+          </div>`;
+        return;
+      }
+      if (!decisionBoards.has(selectedBoardId)) selectedBoardId = boards[0].id;
+      const focusKey = document.activeElement?.dataset?.decide
+        ? `[data-decide="${document.activeElement.dataset.decide}"][data-proposal="${CSS.escape(document.activeElement.dataset.proposal)}"]`
+        : document.activeElement?.closest?.("#decision-board") && document.activeElement.id ? `#${CSS.escape(document.activeElement.id)}` : "";
+      container.innerHTML = `<div class="decisions">
+          <aside class="decision-rail" aria-label="Repositories with decision boards">
+            <div class="decision-rail-section"><h2>Repositories</h2><div class="board-list">${boards.map(renderBoardPick).join("")}</div></div>
+            ${renderSharedBlockers()}
+          </aside>
+          ${renderBoardDetail(decisionBoards.get(selectedBoardId))}
+        </div>`;
+      if (focusKey) container.querySelector(focusKey)?.focus({ preventScroll: true });
+    }
+
+    function ingestBoard(board) {
+      if (!board?.id) return;
+      decisionBoards.set(board.id, board);
+      for (const id of [...selectedProposals]) {
+        if (board.proposals[id] && !needsDecision(board, id)) selectedProposals.delete(id);
+      }
+    }
+
+    async function loadDecisionBoards() {
+      try {
+        const response = await fetch("/api/decision-boards", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Decision boards could not be loaded.");
+        decisionBoards.clear();
+        data.boards.forEach(ingestBoard);
+        organizationDecisions = data.organization;
+      } catch (error) {
+        console.error(error);
+        decisionError = "Decision boards could not be loaded.";
+      }
+      renderDecisions();
+    }
+
+    async function postDecision(path, body) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const reason = { stale_revision: "This proposal changed while you were reviewing it. Review the new revision.", stale_batch: "Proposals changed after the batch was prepared. Nothing was decided; review and try again." }[data.code];
+        throw new Error(reason || data.error || "The decision could not be recorded.");
+      }
+      return data;
+    }
+
+    async function runDecision(work) {
+      decisionBusy = true;
+      decisionError = "";
+      renderDecisions();
+      try {
+        await work();
+      } catch (error) {
+        decisionError = error.message;
+      } finally {
+        decisionBusy = false;
+        renderDecisions();
+      }
+    }
+
+    document.getElementById("decision-board").addEventListener("click", event => {
+      const target = event.target.closest("button, input");
+      if (!target) return;
+      const board = decisionBoards.get(selectedBoardId);
+      if (target.dataset.boardId) {
+        selectedBoardId = target.dataset.boardId;
+        selectedProposals.clear();
+        pendingBatch = pendingExecution = undefined;
+        decisionError = "";
+        renderDecisions();
+        return;
+      }
+      if (target.dataset.decisionFilter) {
+        decisionFilter = target.dataset.decisionFilter;
+        selectedProposals.clear();
+        pendingBatch = undefined;
+        renderDecisions();
+        return;
+      }
+      if (target.dataset.selectProposal) {
+        if (target.checked) selectedProposals.add(target.dataset.selectProposal);
+        else selectedProposals.delete(target.dataset.selectProposal);
+        pendingBatch = undefined;
+        renderDecisions();
+        document.querySelector(`[data-select-proposal="${CSS.escape(target.dataset.selectProposal)}"]`)?.focus({ preventScroll: true });
+        return;
+      }
+      if (target.dataset.decide) {
+        const revision = currentProposalRevision(board, target.dataset.proposal);
+        runDecision(async () => {
+          const data = await postDecision("/api/decisions", { boardId: board.id, proposalId: target.dataset.proposal, revision: revision.revision, digest: revision.digest, verdict: target.dataset.decide });
+          selectedProposals.delete(target.dataset.proposal);
+          ingestBoard(data.board);
+        });
+        return;
+      }
+      if (target.dataset.batch) {
+        const visible = Object.keys(board.proposals).filter(id => matchesFilter(board, id));
+        const ids = [...selectedProposals].filter(id => visible.includes(id));
+        pendingExecution = undefined;
+        runDecision(async () => {
+          const data = await postDecision("/api/decision-batches", { boardId: board.id, proposalIds: ids, verdict: target.dataset.batch });
+          pendingBatch = { boardId: board.id, token: data.token, manifest: data.manifest };
+        });
+        return;
+      }
+      if (target.hasAttribute("data-confirm-batch")) {
+        runDecision(async () => {
+          const data = await postDecision("/api/decision-batches", { boardId: board.id, token: pendingBatch.token });
+          pendingBatch = undefined;
+          selectedProposals.clear();
+          ingestBoard(data.board);
+        });
+        return;
+      }
+      if (target.hasAttribute("data-execute-board")) {
+        pendingBatch = undefined;
+        pendingExecution = { boardId: board.id, ids: Object.keys(board.proposals).filter(id => readyToExecute(board, id)) };
+        renderDecisions();
+        document.querySelector("[data-confirm-execution]")?.focus({ preventScroll: true });
+        return;
+      }
+      if (target.hasAttribute("data-confirm-execution")) {
+        runDecision(async () => {
+          const data = await postDecision("/api/decision-executions", { boardId: board.id, proposalIds: pendingExecution.ids });
+          pendingExecution = undefined;
+          executionResults.set(board.id, new Map(data.results.map(result => [result.proposalId, result])));
+          ingestBoard(data.board);
+          const succeeded = data.results.filter(result => result.status === "succeeded").length;
+          const other = data.results.length - succeeded;
+          if (other) decisionError = `${succeeded} written, ${other} not written. Each proposal shows why.`;
+        });
+        return;
+      }
+      if (target.hasAttribute("data-cancel-board")) {
+        runDecision(async () => {
+          const data = await postDecision("/api/decision-cancel", { boardId: board.id });
+          pendingExecution = undefined;
+          ingestBoard(data.board);
+        });
+        return;
+      }
+      if (target.hasAttribute("data-dismiss-pending")) {
+        pendingBatch = pendingExecution = undefined;
+        renderDecisions();
+      }
+    });
+    document.getElementById("decision-board").addEventListener("toggle", event => {
+      const id = event.target.dataset?.proposalDetails;
+      if (!id) return;
+      if (event.target.open) openProposalDetails.add(id);
+      else openProposalDetails.delete(id);
+    }, true);
+    window.addEventListener("merge-harbor:board", event => {
+      ingestBoard(event.detail);
+      if (!decisionBusy) renderDecisions();
+    });
+    loadDecisionBoards();
   </script>
 </body>
 </html>

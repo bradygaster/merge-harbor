@@ -59,7 +59,7 @@ function loadPageFunctions(names, globals = {}) {
 {
     // Assessments live only in their repository rows; there is no page-level assessments panel.
     assert(!html.includes('id="mission-center"'), "Repository assessments must not render in a page-level panel.");
-    const { assessmentStatusNote } = loadPageFunctions(["assessmentStatusNote"], {
+    const { assessmentStatusNote } = loadPageFunctions(["missionWaiting", "assessmentStatusNote"], {
         escapeHtml: (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"),
     });
     assert(assessmentStatusNote(undefined) === "", "Repositories without an assessment show no status note.");
@@ -67,6 +67,8 @@ function loadPageFunctions(names, globals = {}) {
     const running = assessmentStatusNote({ status: "in_progress", phase: "Coordinating specialists" });
     assert(running.includes("Assessment in progress") && running.includes("Coordinating specialists"), "Running assessments must show their phase in the row.");
     assert(assessmentStatusNote({ status: "queued" }).includes("Starting assessment"), "Queued assessments must show that they are starting.");
+    const waiting = assessmentStatusNote({ status: "queued", phase: "Waiting for Claude", message: "Run /merge-harbor:assess" });
+    assert(waiting.includes("Waiting for Claude") && waiting.includes("/merge-harbor:assess"), "Assessments waiting on a pull-model host must say how to start them.");
     const failed = assessmentStatusNote({ status: "failed", message: "Copilot could not start <the> assessment" });
     assert(failed.includes("Assessment failed") && failed.includes("&lt;the&gt;"), "Failed assessments must show their escaped reason in the row.");
 }

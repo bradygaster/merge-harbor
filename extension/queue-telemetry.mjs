@@ -42,6 +42,18 @@ export function toRepoSummary(repo, owner = repo.owner.login) {
     };
 }
 
+// How many pull requests in the "checks" search really have checks running.
+// GitHub search reports status:pending for a head commit with no statuses or
+// check runs at all, so a repository without CI would otherwise show every PR
+// as "Checks running" forever. Fetched nodes are counted only when their rollup
+// is pending; matches beyond the fetched page are counted as reported.
+export function runningChecksCount(search) {
+    if (!search) return 0;
+    const nodes = Array.isArray(search.nodes) ? search.nodes : [];
+    const running = nodes.filter((pr) => ["PENDING", "EXPECTED"].includes(pr?.statusCheckRollup?.state)).length;
+    return running + Math.max(0, (search.issueCount ?? 0) - nodes.length);
+}
+
 // Builds the six queue counts from the per-search issue counts and the total.
 export function queueMetrics(counts, totalOpen) {
     const metrics = {

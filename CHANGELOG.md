@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Restyled the canvas with a flat, square-cornered look: one deep purple accent for tabs, focus, primary actions and selection, charcoal surfaces in dark mode, Segoe UI Variable type with Cascadia Mono captions, and lifecycle colors as theme variables. Text meets WCAG AA in both themes
+- Fixed the Checks queue counting pull requests with no CI as "checks running": GitHub search reports `status:pending` for a commit with no statuses, so the count now keeps only PRs whose check rollup is pending
+- Split the host-neutral runtime into `extension/harbor-runtime.mjs`; `extension/extension.mjs` is now a thin Copilot host. The runtime is shared by the Copilot host and a Claude Code plugin in this repository
+- Added the Claude Code plugin (`.claude-plugin/`, `claude/`): MCP server, `/merge-harbor:open`, `/merge-harbor:assess`, `/merge-harbor:triage`; install with `/plugin marketplace add bradygaster/merge-harbor`
+- Hosts that cannot push prompts leave assessments queued as "Waiting for <host>" until the agent claims them, and the canvas names the host it runs under
+- Added a light/dark/auto theme picker; the canvas also follows live theme changes
+- Replaced the README screenshots with current Copilot and Claude Code captures, and documented the Decisions view
+- Added the decision ledger for the organization-wide decision board (#5): complete issue inventory with coverage gaps, revisioned proposals, approvals bound to exact revisions, frozen batch manifests, an execution boundary that refuses stale or unapproved actions, and reconciliation of uncertain writes. See `docs/decision-board.md`
+- Added decision-board triage tools (`merge_harbor_get_issue_inventory`, `merge_harbor_report_issue_triage`), a `gh`-backed execution adapter, and local routes for decisions, batches, execution, and cancellation. The wiring lives in host-neutral `extension/decision-service.mjs`
+- Added a Decisions view: per-repository boards with coverage, proposals grouped by shared root cause, exact plain-language actions, text-and-shape state badges, frozen batch confirmation, and a separate execution confirmation that lists every write
+- Fixed dark mode falling back to the legacy pink palette instead of GitHub colors
+- First run now opens the signed-in account instead of the `github` organization, and the owner picker no longer locks while a slow owner loads
+- Act now cards lead with the repository name and no longer squeeze it to a few characters
+- Assess repository is a secondary action; completed findings show their high-severity count, severity badges are colored, and an expanded finding no longer repeats its root cause
+- Zero counts recede, zero blocked reads as "Nothing blocked", the unloaded owner tab shows a dash instead of 0, and Remove from My repos is no longer styled as success
+- Added `scripts/preview.mjs` to run the real extension in a browser with live `gh` data and a tool bridge for playing the Copilot side
 - Removed the page-level Repository assessments panel and its recovery shortcut; starting, running, and failed assessments now show their status in the repository row
 - Fixed the Repository assessments panel squeezing the My repos and owner tabs into narrow columns; it now spans the width below them
 - Fixed assessment status dots rendering as thin bars

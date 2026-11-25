@@ -43,7 +43,7 @@ Mission ID: ${mission.id}
 Target: ${mission.repository.defaultBranch} at exact commit ${mission.repository.targetSha}
 
 Non-negotiable safety boundaries:
-- Create and use a Copilot-managed isolated local clone or disposable worktree at the exact target commit. Never use or modify the user's existing checkout.
+- Create and use an isolated local clone or disposable worktree that you manage at the exact target commit. Never use or modify the user's existing checkout.
 - Disable pushing in the assessment clone/worktree. Do not configure or use credentials for remote writes.
 - Prohibit every remote write: no pushes, issue creation, pull request creation, label changes, comments, releases, workflow dispatches, repository settings changes, or code publication.
 - Default to static, read-only inspection. Do not run repository tests, builds, scripts, hooks, package installs, package-manager commands, or any executable repository code.

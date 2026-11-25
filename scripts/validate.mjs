@@ -19,6 +19,15 @@ const assessmentTestPath = join(root, "scripts", "assessment.test.mjs");
 const disclosureTestPath = join(root, "scripts", "disclosure.test.mjs");
 const queueTelemetryPath = join(root, "extension", "queue-telemetry.mjs");
 const telemetryTestPath = join(root, "scripts", "telemetry.test.mjs");
+const decisionCorePath = join(root, "extension", "decision-core.mjs");
+const decisionTestPath = join(root, "scripts", "decision.test.mjs");
+const decisionServicePath = join(root, "extension", "decision-service.mjs");
+const githubAdapterPath = join(root, "extension", "github-adapter.mjs");
+const decisionServiceTestPath = join(root, "scripts", "decision-service.test.mjs");
+const claudePluginPath = join(root, ".claude-plugin", "plugin.json");
+const claudeMarketplacePath = join(root, ".claude-plugin", "marketplace.json");
+const claudeServerPath = join(root, "claude", "server", "mcp.mjs");
+const claudeTestPath = join(root, "scripts", "mcp.test.mjs");
 
 function requireFile(path, label) {
     if (!existsSync(path)) {
@@ -40,6 +49,15 @@ function requireFile(path, label) {
     [disclosureTestPath, "Assessment disclosure tests"],
     [queueTelemetryPath, "Queue telemetry rules"],
     [telemetryTestPath, "Queue telemetry tests"],
+    [decisionCorePath, "Decision ledger core"],
+    [decisionTestPath, "Decision ledger tests"],
+    [decisionServicePath, "Decision board service"],
+    [githubAdapterPath, "Decision board GitHub adapter"],
+    [decisionServiceTestPath, "Decision board service tests"],
+    [claudePluginPath, "Claude Code plugin manifest"],
+    [claudeMarketplacePath, "Claude Code marketplace catalog"],
+    [claudeServerPath, "Claude Code MCP server"],
+    [claudeTestPath, "Claude Code MCP smoke test"],
 ].forEach(([path, label]) => requireFile(path, label));
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -129,7 +147,13 @@ if (pluginSyntax.status !== 0) {
     throw new Error(pluginSyntax.stderr || pluginSyntax.stdout || "plugin extension entrypoint syntax validation failed.");
 }
 
-const extensionSource = readFileSync(extensionPath, "utf8");
+// The Copilot shell and the shared runtime together form the extension's contract.
+const runtimePath = join(root, "extension", "harbor-runtime.mjs");
+const runtimeSyntax = spawnSync(process.execPath, ["--check", runtimePath], { encoding: "utf8" });
+if (runtimeSyntax.status !== 0) {
+    throw new Error(runtimeSyntax.stderr || runtimeSyntax.stdout || "harbor-runtime.mjs syntax validation failed.");
+}
+const extensionSource = readFileSync(extensionPath, "utf8") + "\n" + readFileSync(runtimePath, "utf8");
 const assessmentCoreSource = readFileSync(assessmentCorePath, "utf8");
 if (!extensionSource.includes('listen(0, "127.0.0.1"')) {
     throw new Error("The canvas server must bind to an ephemeral loopback port.");
@@ -232,7 +256,34 @@ if (!scripts.length) {
 scripts.forEach((match, index) => {
     new vm.Script(match[1], { filename: `merge-harbor-inline-${index + 1}.js` });
 });
-[assessmentTestPath, disclosureTestPath, telemetryTestPath].forEach((testPath) => {
+// Claude Code host: same plugin name and version, the server started from the
+// plugin root, every command described, and nothing but JSON-RPC on stdout.
+const claudePlugin = JSON.parse(readFileSync(claudePluginPath, "utf8"));
+const claudeMarketplace = JSON.parse(readFileSync(claudeMarketplacePath, "utf8"));
+if (claudePlugin.name !== plugin.name || claudePlugin.version !== plugin.version) {
+    throw new Error(".claude-plugin/plugin.json must match plugin.json's name and version.");
+}
+const claudeListed = claudeMarketplace.plugins?.find((entry) => entry.name === plugin.name);
+if (!claudeListed || claudeListed.source !== "./" || claudeListed.version !== plugin.version) {
+    throw new Error(".claude-plugin/marketplace.json must list merge-harbor at ./ with the plugin version.");
+}
+if (claudePlugin.mcpServers?.["merge-harbor"]?.args?.[0] !== "${CLAUDE_PLUGIN_ROOT}/claude/server/mcp.mjs") {
+    throw new Error("The Claude Code MCP server must start from ${CLAUDE_PLUGIN_ROOT}/claude/server/mcp.mjs.");
+}
+["open", "assess", "triage"].forEach((command) => {
+    const commandPath = join(root, "claude", "commands", `${command}.md`);
+    requireFile(commandPath, `Claude Code /merge-harbor:${command} command`);
+    if (!readFileSync(commandPath, "utf8").replace(/\r\n/g, "\n").startsWith("---\ndescription:")) {
+        throw new Error(`claude/commands/${command}.md needs a description.`);
+    }
+});
+if (/console\.log\(/.test(readFileSync(claudeServerPath, "utf8"))) {
+    throw new Error("claude/server/mcp.mjs must not write to stdout outside JSON-RPC.");
+}
+const claudeCheck = spawnSync(process.execPath, ["--check", claudeServerPath], { encoding: "utf8" });
+if (claudeCheck.status !== 0) throw new Error(claudeCheck.stderr || "claude/server/mcp.mjs has a syntax error.");
+
+[assessmentTestPath, disclosureTestPath, telemetryTestPath, decisionTestPath, decisionServiceTestPath, claudeTestPath].forEach((testPath) => {
     const result = spawnSync(process.execPath, [testPath], { encoding: "utf8" });
     if (result.status !== 0) {
         throw new Error(result.stderr || result.stdout || `${relative(root, testPath)} failed.`);
